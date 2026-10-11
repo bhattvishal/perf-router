@@ -645,6 +645,125 @@ const Router=(function(){
 })();
 /*ROUTER-END*/
 
+/*STENCIL-START*/
+/* Solder-side marking stencil.
+   Input (all in holes / mm): {cols, rows, margins:{t,r,b,l}, padR, runs:[[{c,r},...],...], opts}
+   - runs are solder-side wire runs as hole sequences (orthogonal steps)
+   Output: {svg, stl:ArrayBuffer, info}
+   The STL is modelled in print orientation: the face that rests on the board points up, pegs up.
+   Seen from above while printing it reads like the component side; flip it onto the solder side to use it.
+   The SVG is drawn as you'll see it in use: from the solder side (mirrored). */
+const Stencil=(function(){
+  const P=2.54;
+  function build(inp){
+    const o=Object.assign({slot:0.8,thick:0.8,bridge:1.0,bridgeEvery:20,pegs:false,pegD:0.85,pegH:1.6,notch:3,name:'Perfboard'},inp.opts||{});
+    const {cols,rows,margins:m,padR}=inp;
+    const W=(cols-1)*P+2*padR+m.l+m.r, H=(rows-1)*P+2*padR+m.t+m.b;
+    const hx=c=>m.l+padR+c*P, hy=r=>m.t+padR+r*P;            // component-side (physical) coordinates
+    const hw=o.slot/2;
+    /* slots: one axis-aligned rectangle per straight piece, extended by half a slot past each hole centre */
+    const rects=[], used=new Set(); let bridges=0;
+    for(const run of inp.runs){
+      if(run.length<2)continue;
+      run.forEach(p=>used.add(p.c+','+p.r));
+      let s=0;
+      for(let i=1;i<=run.length;i++){
+        const bend=i===run.length||(i>=2&&((run[i].c-run[i-1].c)!==(run[i-1].c-run[i-2].c)||(run[i].r-run[i-1].r)!==(run[i-1].r-run[i-2].r)));
+        if(i<run.length&&!bend)continue;
+        const a=run[s], b=run[i-1];
+        const x0=Math.min(hx(a.c),hx(b.c))-hw, x1=Math.max(hx(a.c),hx(b.c))+hw, y0=Math.min(hy(a.r),hy(b.r))-hw, y1=Math.max(hy(a.r),hy(b.r))+hw;
+        /* bridges: short solid tabs across long slots so the plate stays stiff; lift the marker over them */
+        const horiz=a.r===b.r, len=horiz?x1-x0:y1-y0, k=o.bridge>0&&o.bridgeEvery>0?Math.floor(len/o.bridgeEvery):0;
+        let start=horiz?x0:y0;
+        for(let q=1;q<=k;q++){
+          const mid=(horiz?x0:y0)+len*q/(k+1), g0=mid-o.bridge/2, g1=mid+o.bridge/2;
+          rects.push(horiz?[start,y0,g0,y1]:[x0,start,x1,g0]); start=g1; bridges++;
+        }
+        rects.push(horiz?[start,y0,x1,y1]:[x0,start,x1,y1]); s=i-1;
+      }
+    }
+    /* orientation notch: corner nearest hole A1 (top-left on the component side) */
+    const N=o.notch;
+    /* compressed grid of all edges */
+    const xs=new Set([0,W,N]), ys=new Set([0,H,N]);
+    for(const r of rects){xs.add(r[0]);xs.add(r[2]);ys.add(r[1]);ys.add(r[3]);}
+    const X=[...xs].filter(v=>v>=0&&v<=W).sort((a,b)=>a-b), Y=[...ys].filter(v=>v>=0&&v<=H).sort((a,b)=>a-b);
+    const nx=X.length-1, ny=Y.length-1, solid=new Uint8Array(nx*ny);
+    for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+      const cx=(X[i]+X[i+1])/2, cy=(Y[j]+Y[j+1])/2;
+      let s=!(cx<N&&cy<N);
+      if(s) for(const r of rects){ if(cx>r[0]&&cx<r[2]&&cy>r[1]&&cy<r[3]){s=false;break;} }
+      solid[j*nx+i]=s?1:0;
+    }
+    const S=(i,j)=>i>=0&&j>=0&&i<nx&&j<ny&&solid[j*nx+i]===1;
+    /* registration pegs: free holes nearest each corner, kept clear of the slots */
+    const free=(c,r)=>{ if(used.has(c+','+r))return false; const x=hx(c),y=hy(r),k=o.pegD/2+0.35;
+      for(const q of rects) if(x+k>q[0]&&x-k<q[2]&&y+k>q[1]&&y-k<q[3])return false; return !(x<N+1&&y<N+1); };
+    const pegs=[];
+    if(o.pegs)
+    for(const [cc,rr] of [[0,0],[cols-1,0],[0,rows-1],[cols-1,rows-1]]){
+      let best=null;
+      for(let d=0;d<Math.max(cols,rows)&&!best;d++)
+        for(let dc=0;dc<=d&&!best;dc++){ const dr=d-dc;
+          const c=cc===0?dc:cols-1-dc, r=rr===0?dr:rows-1-dr;
+          if(c>=0&&r>=0&&c<cols&&r<rows&&free(c,r)&&!pegs.some(p=>p.c===c&&p.r===r)) best={c,r}; }
+      if(best)pegs.push(best);
+    }
+    /* ---- STL (binary): plate surface from the compressed grid, then peg cylinders ---- */
+    const tris=[];
+    const T=o.thick;
+    const tri=(a,b,c)=>tris.push(a,b,c);
+    const quad=(a,b,c,d)=>{tri(a,b,c);tri(a,c,d);};
+    for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+      if(!S(i,j))continue;
+      const x0=X[i],x1=X[i+1],y0=Y[j],y1=Y[j+1];
+      // print coordinates: y flipped so the model is not mirrored when viewed from above (+z)
+      const p=(x,y,z)=>[x,H-y,z];
+      quad(p(x0,y0,T),p(x0,y1,T),p(x1,y1,T),p(x1,y0,T));           // top (faces +z)
+      quad(p(x0,y0,0),p(x1,y0,0),p(x1,y1,0),p(x0,y1,0));           // bottom (faces -z)
+      if(!S(i,j-1)) quad(p(x0,y0,0),p(x0,y0,T),p(x1,y0,T),p(x1,y0,0));
+      if(!S(i,j+1)) quad(p(x1,y1,0),p(x1,y1,T),p(x0,y1,T),p(x0,y1,0));
+      if(!S(i-1,j)) quad(p(x0,y1,0),p(x0,y1,T),p(x0,y0,T),p(x0,y0,0));
+      if(!S(i+1,j)) quad(p(x1,y0,0),p(x1,y0,T),p(x1,y1,T),p(x1,y1,0));
+    }
+    const seg=20;
+    for(const pg of pegs){
+      const cx=hx(pg.c), cy=H-hy(pg.r), r=o.pegD/2, z0=T-0.01, z1=T+o.pegH, ring=[];
+      for(let k=0;k<seg;k++){const a=k/seg*Math.PI*2;ring.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}
+      for(let k=0;k<seg;k++){const a=ring[k],b=ring[(k+1)%seg];
+        tri([cx,cy,z1],[a[0],a[1],z1],[b[0],b[1],z1]);
+        tri([cx,cy,z0],[b[0],b[1],z0],[a[0],a[1],z0]);
+        quad([a[0],a[1],z0],[b[0],b[1],z0],[b[0],b[1],z1],[a[0],a[1],z1]);}
+    }
+    const n=tris.length/3, buf=new ArrayBuffer(84+n*50), dv=new DataView(buf);
+    const head=`${o.name} solder-side marking stencil`.slice(0,79);
+    for(let i=0;i<head.length;i++)dv.setUint8(i,head.charCodeAt(i)&127);
+    dv.setUint32(80,n,true);
+    for(let t=0;t<n;t++){
+      const a=tris[t*3],b=tris[t*3+1],c=tris[t*3+2], off=84+t*50;
+      const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
+      let nx_=uy*vz-uz*vy,ny_=uz*vx-ux*vz,nz_=ux*vy-uy*vx; const l=Math.hypot(nx_,ny_,nz_)||1;
+      [nx_/l,ny_/l,nz_/l,...a,...b,...c].forEach((v,k)=>dv.setFloat32(off+k*4,v,true));
+      dv.setUint16(off+48,0,true);
+    }
+    /* ---- SVG at 1:1 in mm, as seen in use: from the solder side (mirrored left-right) ---- */
+    const mx=x=>+(W-x).toFixed(3), f=v=>+v.toFixed(3);
+    let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${f(W)}mm" height="${f(H)}mm" viewBox="0 0 ${f(W)} ${f(H)}">\n`;
+    svg+=`<title>${o.name} — solder-side marking stencil (1:1, seen from the solder side)</title>\n`;
+    svg+=`<g id="outline" fill="none" stroke="#000" stroke-width="0.2"><path d="M${mx(N)} 0 H${mx(W)} V${f(H)} H${mx(0)} V${f(N)} Z"/></g>\n`;
+    svg+=`<g id="holes" fill="none" stroke="#999" stroke-width="0.1">`;
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)svg+=`<circle cx="${mx(hx(c))}" cy="${f(hy(r))}" r="${f(padR)}"/>`;
+    svg+=`</g>\n<g id="slots" fill="#000">`;
+    for(const q of rects)svg+=`<rect x="${mx(q[2])}" y="${f(q[1])}" width="${f(q[2]-q[0])}" height="${f(q[3]-q[1])}"/>`;
+    svg+=`</g>\n`;
+    if(pegs.length){svg+=`<g id="pegs" fill="none" stroke="#d00" stroke-width="0.25">`;for(const pg of pegs)svg+=`<circle cx="${mx(hx(pg.c))}" cy="${f(hy(pg.r))}" r="${f(o.pegD/2)}"/>`;svg+=`</g>\n`;}
+    svg+=`</svg>\n`;
+    return {svg,stl:buf,info:{W,H,slots:rects.length,bridges,pegs,triangles:n,thick:T}};
+  }
+  return {build};
+})();
+/*STENCIL-END*/
+
 /* net colours sit on the green board, so they are fixed in both themes */
 /* ground is always black and power always red (3V3 a lighter red so the two rails stay distinguishable) */
 const POWER_COL={GND:'#141618','5V':'#e3261b','3V3':'#ff6a55'};
@@ -1114,7 +1233,9 @@ function renderPlan(){
   const el=$('#plan'), R=state.routes;
   const head=stats=>`<div class="plan-head"><div>${stats||''}</div><div class="row">
       <button class="btn" type="button" id="copyPlan"${routesOk()&&!R.empty?'':' disabled'}>Copy as text</button>
-      <button class="btn" type="button" id="savePlan"${routesOk()&&!R.empty?'':' disabled'}>Save .txt</button></div></div>`;
+      <button class="btn" type="button" id="savePlan"${routesOk()&&!R.empty?'':' disabled'}>Save .txt</button>
+      <button class="btn" type="button" id="stencilStl"${routesOk()&&!R.empty?'':' disabled'} title="3D-printable solder-side marking stencil">Stencil .stl</button>
+      <button class="btn" type="button" id="stencilSvg"${routesOk()&&!R.empty?'':' disabled'} title="1:1 solder-side stencil drawing in mm">Stencil .svg</button></div></div>`;
   if(!R||R.paused){el.innerHTML=head()+`<p class="plan-empty">Routing is paused while parts overlap or sit off the board. Fix the parts marked in red and the plan comes back.</p>`;return;}
   if(R.empty){el.innerHTML=head()+`<p class="plan-empty">No nets yet. Switch to Wire and connect some pins; the router lays out the wires as soon as you do.</p>`;return;}
   const groups=planData(), done=loadProgress(); let total=0,dn=0, html='<ol class="steps">';
@@ -1914,7 +2035,7 @@ try{ if(window.claude&&window.claude.use) window.claude.use('downloads').then(d=
 async function saveFile(filename,data,what){
   if(!window.claude){ // running on its own (GitHub Pages, local file): use a normal browser download
     try{
-      const url=URL.createObjectURL(new Blob([data],{type:filename.endsWith('.json')?'application/json':'text/plain'}));
+      const ext=filename.split('.').pop(), url=URL.createObjectURL(new Blob([data],{type:{json:'application/json',svg:'image/svg+xml',stl:'model/stl',zip:'application/zip'}[ext]||'text/plain'}));
       const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=>URL.revokeObjectURL(url),1000); toast(`Saved ${filename}.`); return true;
     }catch(_){}
@@ -2208,7 +2329,38 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('keydown',e=>{if(imp&&e.key==='Escape'){e.stopImmediatePropagation();closeImport();}},true);
 
+/* ---------- solder-side marking stencil ---------- */
+function stencilData(){
+  const R=state.routes; if(!routesOk()||R.empty)return null;
+  const W=rW(), runs=[];
+  R.res.forEach(r=>r.paths.forEach(path=>pathPieces(path).runs.forEach(run=>runs.push(run.map(c=>({c:c%W,r:(c/W)|0}))))));
+  return Stencil.build({cols:state.board.cols,rows:state.board.rows,margins:margins(),padR:PAD_R_MM,runs,opts:{name:state.name||'Perfboard'}});
+}
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function zipOne(name,data){ /* minimal stored (uncompressed) zip with one file */
+  const bytes=new Uint8Array(data), nm=new TextEncoder().encode(name);
+  let crc=0xFFFFFFFF; for(let i=0;i<bytes.length;i++)crc=CRC[(crc^bytes[i])&255]^(crc>>>8); crc=(crc^0xFFFFFFFF)>>>0;
+  const out=new Uint8Array(30+nm.length+bytes.length+46+nm.length+22), dv=new DataView(out.buffer); let o=0;
+  const hdr=(sig,central)=>{dv.setUint32(o,sig,true);o+=4;if(central){dv.setUint16(o,20,true);o+=2;}
+    dv.setUint16(o,20,true);dv.setUint16(o+2,0,true);dv.setUint16(o+4,0,true);dv.setUint16(o+6,0,true);dv.setUint16(o+8,0x21,true);o+=10;
+    dv.setUint32(o,crc,true);dv.setUint32(o+4,bytes.length,true);dv.setUint32(o+8,bytes.length,true);dv.setUint16(o+12,nm.length,true);dv.setUint16(o+14,0,true);o+=16;};
+  hdr(0x04034b50,false); out.set(nm,o); o+=nm.length; out.set(bytes,o); o+=bytes.length;
+  const cdStart=o; hdr(0x02014b50,true); dv.setUint16(o,0,true);dv.setUint16(o+2,0,true);dv.setUint16(o+4,0,true);dv.setUint32(o+6,0,true);dv.setUint32(o+10,0,true);o+=14; out.set(nm,o); o+=nm.length;
+  const cdLen=o-cdStart; dv.setUint32(o,0x06054b50,true);dv.setUint16(o+4,0,true);dv.setUint16(o+6,0,true);dv.setUint16(o+8,1,true);dv.setUint16(o+10,1,true);dv.setUint32(o+12,cdLen,true);dv.setUint32(o+16,cdStart,true);dv.setUint16(o+20,0,true);
+  return out;
+}
+function exportStencil(kind){
+  const st=stencilData(); if(!st){toast('Route the board first; the stencil follows the solder-side wire runs.');return;}
+  const base=`perfboard-${slug(state.name)}-stencil`;
+  if(kind==='svg') saveFile(`${base}.svg`,st.svg,'stencil');
+  else if(!window.claude) saveFile(`${base}.stl`,st.stl,'stencil');
+  else saveFile(`${base}.zip`,new Blob([zipOne(`${base}.stl`,st.stl)]),'stencil'); /* .stl isn't a permitted download type here, so it travels zipped */
+  const i=st.info;
+  setTimeout(()=>toast(`Stencil ${i.W.toFixed(1)} × ${i.H.toFixed(1)} × ${i.thick} mm, ${i.bridges} bridge${i.bridges===1?'':'s'}. Print it flat as it comes, then flip it onto the solder side of the bare board.`),1600);
+}
 $('#plan').addEventListener('click',e=>{
+  if(e.target.id==='stencilStl'){exportStencil('stl');return;}
+  if(e.target.id==='stencilSvg'){exportStencil('svg');return;}
   if(e.target.id==='savePlan'){saveFile(`perfboard-${slug(state.name)}-solder-plan.txt`,planText(),'solder plan');return;}
   if(e.target.id!=='copyPlan')return;
   const txt=planText();
