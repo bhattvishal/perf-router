@@ -10,11 +10,11 @@ It is a single static `index.html`: no build step, no server, no dependencies. O
 - **Parts library**
   - Microcontrollers: ESP32-C3 Super Mini (default), Seeed XIAO ESP32-C6, ESP32 DevKitC (38-pin)
   - Connectors and headers: JST-XH 2/3/4-pin, female berg strips 1×3, 4, 5, 6, 8, 10 and 12
-  - Passives and LEDs: resistor (adjustable lead spacing), 5 mm LED, WS2812 pixel LED (5 mm and 3-pin module)
+  - Passives and LEDs: resistor and diode (adjustable lead spacing), 5 mm LED, WS2812 pixel LED (5 mm and 3-pin module), WS2812B 5050 SMD LED drawn at true size with its off-grid pads bridged to the nearest holes
   - Sound and switches: active and passive 12 mm buzzers, 6 × 6 mm push button, 3-pin slide switch (SPDT)
-  - Modules: DRV8833 motor driver, VEML6030 light sensor, VL53L0X / VL53L1X ToF sensor, INMP441 I2S microphone
+  - Modules: DHT22 (bare 4-pin and 3-pin module), DRV8833 motor driver, VEML6030 light sensor, VL53L0X / VL53L1X ToF sensor, INMP441 I2S microphone
 - **Castellated (SMD) mounting** — the C3 Super Mini and XIAO C6 can lie flat and solder from their edge pads. The module is drawn at its real size and stays put; only the solder points move one hole outward on each side. This works on locked parts too.
-- **Placement** — drag and drop on the hole grid, rotate, lock, overlap and off-board checks, and auto-suggested spots near the microcontroller. The microcontroller lands on the board edge with USB facing out.
+- **Placement** — drag and drop on the hole grid, rotate, lock, overlap checks (a part may overhang the board edge as long as every solder point lands on a hole), and auto-suggested spots near the microcontroller. The microcontroller lands on the board edge with USB facing out.
 - **Component organizer** — places every unlocked part for short wires and as few jumpers as possible. Locked parts stay put, and the microcontroller keeps its USB at an edge.
 - **Click-to-wire** — in Wire mode, tap a pin and then the pin it connects to. Nets merge automatically, power nets are named (GND is always black, 5V and 3V3 always red), and each pin shows its GPIO label.
 - **Ratsnest** — live Manhattan minimum-spanning tree per net, with a total length you can use to compare placements.

@@ -19,7 +19,7 @@
   --fr4:#2b6744; --fr4-edge:#1f4f33; --ring:#c9ced2; --drill:#10201a; --pin:#d6ad48; --pin-edge:#9c7a24;
   --mcu:#1d2b4a; --mcu-edge:#0f1830; --silk:#eef3f6; --usb:#b9bec4; --usb-edge:#7d848b;
   --housing:#f1ead9; --housing-edge:#b9ab8a; --housing-ink:#4a3f2a;
-  --lead:#aeb4b9; --res:#d8c095; --res-edge:#a88d5c; --band-a:#6b3d1c; --band-b:#1b1b1b; --band-c:#c23a2a; --band-d:#c9a23a;
+  --lead:#aeb4b9; --res:#d8c095; --res-edge:#a88d5c; --band-a:#6b3d1c; --band-b:#1b1b1b; --band-c:#c23a2a; --band-d:#c9a23a; --dio-band:#c9ccd1;
   --led:#e2483d; --led-edge:#9e2219; --px:#f4f4ef; --px-edge:#a9aaa3; --px-ink:#3a3b37; --pcb:#121614;
   --rat-under:#0b1a12; --src:#ffffff; --scrim:rgba(14,22,17,.45); --shadow:rgba(10,20,14,.25);
   --display:'Barlow Condensed','Arial Narrow',sans-serif;
@@ -172,6 +172,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.prow:focus-visi
 .b-sw-knob{fill:#c9ccd1}
 .b-mod{stroke:rgba(0,0,0,.45);stroke-width:1.2}
 .b-fhdr{fill:#17191c;stroke:#000;stroke-width:1}
+.b-dio{fill:#1d1f22;stroke:#000}
+.b-dht{fill:#f2f3ef;stroke:#9ea3a0;stroke-width:1.2}
+.b-dht-slot{fill:#c9ccc6}
+.b-ws{fill:#f4f4f0;stroke:#9fa29c;stroke-width:1}
+.b-ws-lens{fill:#fffbe8;stroke:#d8d2b8;stroke-width:1}
+.b-ws-pad{fill:var(--pin);stroke:var(--pin-edge);stroke-width:.6}
+.lbl-smdled{fill:#33352f}
 .t-ref{font:600 12px var(--mono);text-anchor:middle;dominant-baseline:central;fill:var(--silk)}
 .t-name{font:500 9.5px var(--mono);text-anchor:middle;dominant-baseline:central;fill:var(--silk);opacity:.85}
 .t-dark{fill:var(--housing-ink)}
@@ -181,7 +188,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.prow:focus-visi
 .lock path{fill:none;stroke:var(--pin);stroke-width:1.4}
 .o-sel{fill:none;stroke:var(--accent);stroke-width:2.2;stroke-dasharray:5 3}
 .o-bad{fill:var(--bad);fill-opacity:.28;stroke:var(--bad);stroke-width:2.2}
-.solder .b-buzz,.solder .b-buzz-hole,.solder .b-btn,.solder .b-btn-cap,.solder .b-sw,.solder .b-sw-knob,.solder .b-mod,.solder .b-fhdr,.solder .b-mcu-btn,.solder .b-mcu-chip,.solder .b-mcu-dot,.solder .b-mcu-ant,.solder .b-mcu-led,.solder .b-mcu-can,.solder .b-mcu-mod,.solder .b-mcu-zig,.solder .b-mcu,.solder .b-usb,.solder .b-jst,.solder .b-res,.solder .b-res-band,.solder .b-led,.solder .b-flat,.solder .b-px,.solder .b-pcb,.solder .b-lead{opacity:.2}
+.solder .b-dio,.solder .b-dht,.solder .b-dht-slot,.solder .b-ws,.solder .b-ws-lens,.solder .b-ws-pad,.solder .b-buzz,.solder .b-buzz-hole,.solder .b-btn,.solder .b-btn-cap,.solder .b-sw,.solder .b-sw-knob,.solder .b-mod,.solder .b-fhdr,.solder .b-mcu-btn,.solder .b-mcu-chip,.solder .b-mcu-dot,.solder .b-mcu-ant,.solder .b-mcu-led,.solder .b-mcu-can,.solder .b-mcu-mod,.solder .b-mcu-zig,.solder .b-mcu,.solder .b-usb,.solder .b-jst,.solder .b-res,.solder .b-res-band,.solder .b-led,.solder .b-flat,.solder .b-px,.solder .b-pcb,.solder .b-lead{opacity:.2}
 .solder .t-ref,.solder .t-name{opacity:.45}
 .solder .lbl{fill:var(--silk);paint-order:stroke;stroke:var(--fr4);stroke-width:2.5px}
 #ratsLayer,#overlayLayer{pointer-events:none}
@@ -642,14 +649,19 @@ const LIB={
     note:'Pin order follows Espressif’s DevKitC V4 with USB up, seen from the component side. Its headers are 1.0 in (10 holes) apart; some 38-pin clones are narrower, so measure yours.'},
   jst2:jst(2), jst3:jst(3), jst4:jst(4),
   hdr:{...jst(5),name:'Pin header',short:'Header',group:null},
-  res:{name:'Resistor',short:'Resistor',group:'Passives',ref:'R',kind:'res',w:5,h:1,
+  res:{name:'Resistor',short:'Resistor',group:'Passives',ref:'R',kind:'res',w:5,h:1,spanable:true,defSpan:4,pinNames:['Lead 1','Lead 2'],
     note:'Lead spacing is the number of holes between the two leads. 4 holes (10.16 mm) suits a 1/4 W resistor lying flat.'},
+  diode:{name:'Diode (1N4007 / 1N4148)',short:'Diode',group:'Passives',ref:'D',kind:'res',diode:true,w:5,h:1,spanable:true,defSpan:4,pinNames:['Anode (+)','Cathode (−, band)'],
+    note:'Lead spacing is the number of holes between the leads; 4 holes (10.16 mm) suits a 1N4007 or 1N4148 lying flat. The grey band marks the cathode, which goes to the more positive side when the diode should block.'},
   led:{name:'LED 5 mm',short:'LED 5 mm',group:'LEDs',ref:'D',kind:'led',w:2,h:1,
     pins:[{x:0,y:0,name:'Anode (+)',short:'',in:[0,0]},{x:1,y:0,name:'Cathode (−)',short:'',in:[0,0]}],
     note:'The flat edge of the outline marks the cathode, same as the flat on the LED rim.'},
   px5:{name:'Pixel LED 5 mm (WS2812)',short:'Pixel 5 mm',group:'LEDs',ref:'PX',kind:'px5',w:4,h:2,lblOff:.78,
     pins:[['DIN','DI'],['VDD 5V','+'],['GND','G'],['DOUT','DO']].map((p,i)=>({x:i,y:1,name:p[0],short:p[1],in:[0,-1]})),
     note:'Lead order on through-hole addressable LEDs varies between makers. Check your datasheet; the longest lead is usually GND.'},
+  ws2812smd:{name:'WS2812B 5050 SMD LED',short:'WS2812B',group:'LEDs',ref:'PX',kind:'smdled',w:3,h:2,lblOff:.55,
+    pins:[{x:0,y:0,name:'VDD 5V',short:'+',in:[1,0]},{x:0,y:1,name:'DOUT',short:'DO',in:[1,0]},{x:2,y:1,name:'GND (VSS)',short:'G',in:[-1,0]},{x:2,y:0,name:'DIN',short:'DI',in:[-1,0]}],
+    note:'Drawn at true size: a 5 × 5 mm package whose four pads (1 VDD, 2 DOUT, 3 VSS, 4 DIN) don\u2019t sit on the 2.54 mm grid. Each pad is assigned to the nearest hole; bridge pad to hole with a short wire. Put a 100 nF capacitor across VDD and GND close to it.'},
   pxmod:{name:'Pixel LED module (WS2812)',short:'Pixel module',group:'LEDs',ref:'PX',kind:'pxmod',w:3,h:3,lblOff:.72,
     pins:[['5V','+'],['DIN','DI'],['GND','G']].map((p,i)=>({x:i,y:2,name:p[0],short:p[1],in:[0,-1]})),
     note:'A single WS2812B on a small breakout with a 3-pin header. Use the input side; the output pads stay unconnected or chain on.'},
@@ -675,6 +687,12 @@ const LIB={
   vl53:{name:'VL53L0X / VL53L1X ToF sensor',short:'VL53L ToF',group:'Modules',ref:'U',kind:'module',pcb:'#5b2a86',w:6,h:4,lblOff:.7,
     pins:['VIN','GND','SCL','SDA','GPIO1','XSHUT'].map((n,i)=>({x:i,y:3,name:n,short:n==='GND'?'G':n==='VIN'?'V+':n==='GPIO1'?'IO1':n==='XSHUT'?'XS':n,in:[0,-1]})),
     note:'Pin order follows the common GY-530 style VL53L0X / VL53L1X breakout. Check yours before soldering.'},
+  dht22:{name:'DHT22 sensor (4-pin)',short:'DHT22',group:'Modules',ref:'U',kind:'dht',w:6,h:3,lblOff:.7,
+    pins:[['VCC','V+'],['DATA','DAT'],['NC','NC'],['GND','G']].map((p,i)=>({x:i+1,y:2,name:p[0],short:p[1],in:[0,-1]})),
+    note:'Bare DHT22 / AM2302, grille facing you, pins left to right: VCC, DATA, not connected, GND. Add a 4.7–10 kΩ pull-up from DATA to VCC. It runs on 3.3–6 V.'},
+  dht22m:{name:'DHT22 module (3-pin)',short:'DHT22 mod',group:'Modules',ref:'U',kind:'module',pcb:'#1f63b5',w:4,h:5,lblOff:.7,
+    pins:[['VCC (+)','+'],['DATA (out)','OUT'],['GND (−)','−']].map((p,i)=>({x:i,y:4,name:p[0],short:p[1],in:[0,-1]})),
+    note:'DHT22 on a small breakout with its pull-up already fitted. Pin order varies between modules (+ out − is common), so check the silkscreen.'},
   inmp441:{name:'INMP441 I2S microphone',short:'INMP441',group:'Modules',ref:'MK',kind:'mic',w:5,h:5,lblOff:.72,
     pins:[...[['L/R','LR'],['WS','WS'],['SCK','SCK']].map((p,i)=>({x:i+1,y:0,name:p[0],short:p[1],in:[0,1]})),
           ...[['SD','SD'],['VDD','V+'],['GND','G']].map((p,i)=>({x:i+1,y:4,name:p[0],short:p[1],in:[0,-1]}))],
@@ -686,9 +704,9 @@ const LIB={
 LIB.c3mini.castellated=true; LIB.xiaoc6.castellated=true;
 const GROUPS=['Microcontrollers','Connectors','Headers','Passives','LEDs','Sound & switches','Modules'];
 function getDef(p){
-  if(p.type==='res'){
-    const s=p.span||4;
-    return {...LIB.res,w:s+1,h:1,pins:[{x:0,y:0,name:'Lead 1',short:'',in:[0,0]},{x:s,y:0,name:'Lead 2',short:'',in:[0,0]}]};
+  if(LIB[p.type]&&LIB[p.type].spanable){
+    const d0=LIB[p.type], s=p.span||d0.defSpan||4;
+    return {...d0,w:s+1,h:1,pins:[{x:0,y:0,name:d0.pinNames[0],short:'',in:[0,0]},{x:s,y:0,name:d0.pinNames[1],short:'',in:[0,0]}]};
   }
   let d=LIB[p.type];
   if(p.mount==='smd'&&d.castellated){
@@ -770,7 +788,7 @@ function cleanParts(arr){
     ids.add(id);
     out.push({id,type:p.type,ref:String(p.ref||LIB[p.type].ref).replace(/[^\w-]/g,'').slice(0,8),
       x:Math.round(+p.x||0),y:Math.round(+p.y||0),rot:((Math.round(+p.rot||0)%4)+4)%4,locked:!!p.locked,
-      ...(p.type==='res'?{span:clamp(Math.round(+p.span||4),2,12)}:{}),
+      ...(LIB[p.type].spanable?{span:clamp(Math.round(+p.span||LIB[p.type].defSpan||4),2,12)}:{}),
       ...(p.type==='hdr'?{n:clamp(Math.round(+p.n||5),2,12)}:{}),
       ...(p.mount==='smd'&&LIB[p.type].castellated?{mount:'smd'}:{}),
       ...(Array.isArray(p.labels)?{labels:p.labels.slice(0,12).map(s=>String(s||'').replace(/[<>&"']/g,'').slice(0,12))}:{}),
@@ -820,7 +838,8 @@ function geom(p){
   return {d,W,H,x:p.x,y:p.y,pins,usb:d.usb?rotDir(0,-1,r):null};
 }
 function boxesTouch(a,b,m){return !(a.x+a.W+m<=b.x||b.x+b.W+m<=a.x||a.y+a.H+m<=b.y||b.y+b.H+m<=a.y);}
-function inBoard(g){return g.x>=0&&g.y>=0&&g.x+g.W<=state.board.cols&&g.y+g.H<=state.board.rows;}
+/* a part fits when every solder point lands on a hole; its body may overhang the board edge */
+function inBoard(g){const{cols,rows}=state.board;return g.pins.every(q=>q.c>=0&&q.r>=0&&q.c<cols&&q.r<rows);}
 function conflicts(){
   const out={}, gs=state.parts.map(p=>[p,geom(p)]);
   const add=(id,msg)=>{(out[id]=out[id]||[]).push(msg);};
@@ -951,7 +970,7 @@ function buildProblem(){
   const netIdx={}; state.nets.forEach((n,k)=>n.pins.forEach(key=>{netIdx[key]=k;}));
   for(const p of state.parts){
     const g=geom(p);
-    for(let y=g.y;y<g.y+g.H;y++)for(let x=g.x;x<g.x+g.W;x++)body[y*W+x]=1;
+    for(let y=Math.max(0,g.y);y<Math.min(H,g.y+g.H);y++)for(let x=Math.max(0,g.x);x<Math.min(W,g.x+g.W);x++)body[y*W+x]=1;
     for(const q of g.pins){const k=netIdx[pk(p.id,q.i)];pinNet[q.r*W+q.c]=k===undefined?-2:k;}
   }
   const nets=state.nets.map(n=>({pins:n.pins.map(k=>{const pi=pinInfo(k);return pi.q.r*W+pi.q.c;}),power:netPowers(n).length?1:0}));
@@ -1011,7 +1030,7 @@ function renderRoutes(){
   const T=`<g class="side ${state.flip?'front':'back'}">${tr}</g>`, J=`<g class="side ${state.flip?'back':'front'}">${jw}</g>`;
   routeLayer.innerHTML=state.flip?J+T:T+J;
 }
-const HEIGHT={res:1,led:2,fhdr:3,btn:3,sw:3,px5:4,jst:4,buzzer:5,pxmod:5,module:6,mic:6,mcu:7};
+const HEIGHT={smdled:1,dht:5,res:1,led:2,fhdr:3,btn:3,sw:3,px5:4,jst:4,buzzer:5,pxmod:5,module:6,mic:6,mcu:7};
 function planData(){
   const R=state.routes;
   const groups=[
@@ -1187,13 +1206,27 @@ function partSVG(p,issues){
     b+=`<line class="b-lead" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
     const horiz=y1===y2, dist=Math.hypot(x2-x1,y2-y1), len=Math.max(18,Math.min(dist-PITCH*.9,54)), th=13;
     const mx=(x1+x2)/2,my=(y1+y2)/2;
-    b+=horiz?`<rect class="b-res" x="${mx-len/2}" y="${my-th/2}" width="${len}" height="${th}" rx="5"/>`
-            :`<rect class="b-res" x="${mx-th/2}" y="${my-len/2}" width="${th}" height="${len}" rx="5"/>`;
-    [[-.3,'--band-a'],[-.14,'--band-b'],[.02,'--band-c'],[.3,'--band-d']].forEach(([o,c])=>{
+    const dio=!!g.d.diode, sg=horiz?Math.sign(x2-x1)||1:Math.sign(y2-y1)||1;
+    b+=horiz?`<rect class="b-res${dio?' b-dio':''}" x="${mx-len/2}" y="${my-th/2}" width="${len}" height="${th}" rx="${dio?3:5}"/>`
+            :`<rect class="b-res${dio?' b-dio':''}" x="${mx-th/2}" y="${my-len/2}" width="${th}" height="${len}" rx="${dio?3:5}"/>`;
+    (dio?[[.3*sg,'--dio-band']]:[[-.3,'--band-a'],[-.14,'--band-b'],[.02,'--band-c'],[.3,'--band-d']]).forEach(([o,c])=>{
       const off=o*len; b+=horiz?`<rect class="b-res-band" x="${mx+off-1.6}" y="${my-th/2}" width="3.2" height="${th}" style="fill:var(${c})"/>`
                                :`<rect class="b-res-band" x="${mx-th/2}" y="${my+off-1.6}" width="${th}" height="3.2" style="fill:var(${c})"/>`;
     });
     b+=`<text class="t-ref t-dark" x="${mx+(horiz?0:th+8)}" y="${my+(horiz?-th-2:0)}" style="font-size:9.5px;fill:var(--silk)">${p.ref}</text>`;
+  }else if(k==='dht'){
+    const G=localRect(p,g,-.45,-.45,g.d.w-.55,1.55);
+    b+=`<rect class="b-dht" x="${G.x}" y="${G.y}" width="${G.w}" height="${G.h}" rx="3"/>`;
+    for(let i=0;i<4;i++){const a=localRect(p,g,.6+i*1.1,.05,1.2+i*1.1,1.05);b+=`<rect class="b-dht-slot" x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" rx="1.5"/>`;}
+    b+=`<text class="t-name t-onmetal" x="${cx}" y="${cy-PITCH*.5}">${p.ref}</text>`;
+  }else if(k==='smdled'){
+    /* true 5050 geometry: 5 mm body, pads at ±2.45 mm × ±1.65 mm from the centre, assigned to the nearest holes */
+    const S=PITCH/2.54, [ccx,ccy]=dispPt(p,g,1,.5), half=2.5*S;
+    b+=`<rect class="b-ws" x="${ccx-half}" y="${ccy-half}" width="${half*2}" height="${half*2}" rx="2"/><circle class="b-ws-lens" cx="${ccx}" cy="${ccy}" r="${1.9*S}"/>`;
+    for(const q of g.pins){
+      const lx=q.x===0?1-2.45/2.54:1+2.45/2.54, ly=q.y===0?.5-1.65/2.54:.5+1.65/2.54, [px,py]=dispPt(p,g,lx,ly);
+      b+=`<line class="castle" x1="${px}" y1="${py}" x2="${hx(q.c)}" y2="${hy(q.r)}"/><rect class="b-ws-pad" x="${px-.75*S}" y="${py-.5*S}" width="${1.5*S}" height="${1*S}"/>`;
+    }
   }else if(k==='led'){
     const[lx,ly]=dispPt(p,g,.5,0), r=PITCH*.98;
     const kd=rotDir(1,0,p.rot||0), kx=kd[0]*f, ky=kd[1], px=-ky, py=kx;
@@ -1341,10 +1374,10 @@ function renderInspector(cf){
     let chips=statusChip(issues);
     if(p.locked) chips+='<span class="chip acc">Locked</span>';
     if(LIB[p.type].castellated) chips+=`<span class="chip">${p.mount==='smd'?'Castellated (SMD) mount':'Through-hole mount'}</span>`;
-    if(d.usb){const u=usbInfo(p,g); chips+=u.dist===0?`<span class="chip ok">USB at ${u.side} edge</span>`:`<span class="chip warn">USB ${u.dist} hole${u.dist>1?'s':''} in from ${u.side} edge</span>`;}
+    if(d.usb){const u=usbInfo(p,g); chips+=u.dist<=0?`<span class="chip ok">USB at ${u.side} edge${u.dist<0?' (overhangs)':''}</span>`:`<span class="chip warn">USB ${u.dist} hole${u.dist>1?'s':''} in from ${u.side} edge</span>`;}
     const conn=g.pins.filter(q=>netOf(pk(p.id,q.i))).length;
     chips+=`<span class="chip">${conn} of ${g.pins.length} pins wired</span>`;
-    const span=p.type==='res'?`<div class="stepper"><span>Lead spacing</span>
+    const span=LIB[p.type].spanable?`<div class="stepper"><span>Lead spacing</span>
       <button class="btn" type="button" data-act="span-" aria-label="Shorter lead spacing">−</button>
       <b style="font-family:var(--mono)">${p.span} holes</b>
       <button class="btn" type="button" data-act="span+" aria-label="Longer lead spacing">+</button>
@@ -1387,11 +1420,11 @@ function renderPalette(){
     const items=Object.entries(LIB).filter(([,d])=>d.group===gname);
     s+=`<details class="pgroup" data-group="${gname}"${ui.groups[gname]===false?'':' open'}><summary><span class="eyebrow">${gname}</span><span class="cnt">${items.length}</span></summary><div class="pitems">`;
     for(const[type,d0] of items){
-      const d=type==='res'?getDef({type:'res',span:4}):d0;
+      const d=d0.spanable?getDef({type,span:d0.defSpan}):d0;
       const sc=Math.min(40/d.w,30/d.h,7), w=d.w*sc, h=d.h*sc, ox=(44-w)/2, oy=(34-h)/2;
       let ic=`<rect class="mini-body" x="${ox}" y="${oy}" width="${w}" height="${h}" rx="2"/>`;
       for(const q of d.pins) ic+=`<circle class="mini-pin" cx="${ox+(q.x+.5)*sc}" cy="${oy+(q.y+.5)*sc}" r="${Math.max(1.4,sc*.28)}"/>`;
-      const meta=`${d.pins.length} pins · ${d.w}×${d.h}${type==='res'?' · span 4':''}`;
+      const meta=`${d.pins.length} pins · ${d.w}×${d.h}${d0.spanable?` · span ${d0.defSpan}`:''}`;
       s+=`<button class="pitem" type="button" data-add="${type}"><svg viewBox="0 0 44 34" aria-hidden="true">${ic}</svg><span><b>${d.name}${d.def?'<span class="tag">Default</span>':''}</b><i>${meta}</i></span></button>`;
     }
     s+='</div></details>';
@@ -1448,7 +1481,7 @@ function suggest(p,target){
 function addPart(type){
   const snap=snapshot();
   const p={id:'p'+(state.seq++),type,ref:nextRef(LIB[type].ref),x:0,y:0,rot:0,locked:false};
-  if(type==='res')p.span=4;
+  if(LIB[type].spanable)p.span=LIB[type].defSpan||4;
   const spot=suggest(p);
   if(!spot){state.seq--;toast('No free spot fits this part. Make the board bigger or move parts.');return;}
   Object.assign(p,spot); state.parts.push(p); pushUndo(snap);
@@ -1709,7 +1742,7 @@ function organizeLayout(seed){
   const placed=new Set(fixed.map(p=>p.id));
   const feasible=(p,ignore,margin)=>{
     const g=geom(p); if(!inBoard(g))return false;
-    if(isMcu(p)&&usbInfo(p,g).dist!==0)return false;
+    if(isMcu(p)&&usbInfo(p,g).dist>0)return false;
     for(const q of state.parts){ if(q.id===p.id||q.id===ignore||!placed.has(q.id))continue; if(boxesTouch(g,G[q.id],margin))return false; }
     return true;
   };
@@ -1927,6 +1960,7 @@ function defaultMap(type,pins){
   if(/resistor/.test(t))return 'res';
   if(t==='wokwi-led')return 'led';
   if(t==='wokwi-neopixel')return 'px5';
+  if(t==='wokwi-dht22')return 'dht22';
   if(t==='wokwi-pushbutton'||t==='wokwi-pushbutton-6mm')return 'btn';
   if(t==='wokwi-buzzer')return 'buzP';
   if(t==='wokwi-slide-switch')return 'sw3';
@@ -1938,13 +1972,14 @@ function defaultMap(type,pins){
 function pinIndexMap(type,pins){
   const m={}, U=s=>s.toUpperCase();
   if(type==='res') pins.forEach((p,i)=>{m[p]=U(p)==='1'?0:U(p)==='2'?1:i;});
+  else if(type==='diode') pins.forEach((p,i)=>{const u=U(p);m[p]=u==='A'?0:u==='C'||u==='K'?1:i;});
   else if(type==='led') pins.forEach((p,i)=>{const u=U(p);m[p]=(u==='A'||u==='+'||u==='ANODE')?0:(u==='C'||u==='K'||u==='-'||u==='CATHODE')?1:i;});
   else if(type==='px5') pins.forEach(p=>{const u=U(p);m[p]=/^(DIN|DI)$/.test(u)?0:/^(VDD|VCC|5V|\+)$/.test(u)?1:/^(VSS|GND)$/.test(u)?2:/^(DOUT|DO)$/.test(u)?3:-1;});
   else if(type==='pxmod') pins.forEach(p=>{const u=U(p);m[p]=/^(VDD|VCC|5V|\+)$/.test(u)?0:/^(DIN|DI)$/.test(u)?1:/^(VSS|GND)$/.test(u)?2:-1;});
   else if(type==='btn') pins.forEach((p,i)=>{const u=U(p);m[p]=u==='1'?0:u==='2'?2:i*2;});
   else if(type==='buzA'||type==='buzP') pins.forEach((p,i)=>{const u=U(p);m[p]=(u==='2'||u==='+'||u==='VCC')?0:(u==='1'||u==='-'||u==='GND')?1:i;});
   else if(type==='sw3') pins.forEach((p,i)=>{const u=U(p);m[p]=u==='1'?0:u==='2'?1:u==='3'?2:i;});
-  else if(LIB[type]&&/^(module|mic)$/.test(LIB[type].kind)){
+  else if(LIB[type]&&/^(module|mic|dht)$/.test(LIB[type].kind)){
     const norm=x=>{x=U(x).replace(/[^A-Z0-9]/g,'');return /^(VCC|VIN|VDD|3V3|5V)$/.test(x)?'PWR':/^(GND|VSS)$/.test(x)?'GND':x;};
     const tn=LIB[type].pins.map(q=>norm(q.name)); const used=new Set();
     pins.forEach(p=>{const j=tn.findIndex((t,ix)=>t===norm(p)&&!used.has(ix)); if(j>=0){m[p]=j;used.add(j);}});
@@ -1979,7 +2014,7 @@ function analyzeImport(){
     const mt=imp.maps[p.id]; if(!mt||mt==='skip')continue;
     const pins=imp.used[p.id]||[];
     const np={id:'p'+(seq++),type:mt,ref:ref(LIB[mt].ref),x:0,y:0,rot:0,locked:false,from:`${p.id} (${p.type})`,wx:+p.left||0,wy:+p.top||0};
-    if(mt==='res')np.span=4;
+    if(LIB[mt].spanable)np.span=LIB[mt].defSpan||4;
     if(mt==='hdr')np.n=clamp(Math.max(2,pins.length),2,12);
     const idx=pinIndexMap(mt,pins);
     if(mt.startsWith('jst')||mt==='hdr'||LIB[mt].kind==='fhdr'){const lab=[];for(const pn of pins){if(idx[pn]!==undefined)lab[idx[pn]]=pn;} np.labels=Array.from({length:getDef(np).pins.length},(_,i)=>lab[i]||'');}
