@@ -6,7 +6,7 @@ It is a single static `index.html`: no build step, no server, no dependencies. O
 
 ## Features
 
-- **Any board size** — default 24 × 18 holes at 2.54 mm pitch, plus a blank **margin** of board material (default 0.1 in / 2.54 mm) measured from the outer edge of the hole pads on every side. With **Dimensions** on, the board's overall width and height are drawn along its edges and dotted guides show the margin on each side.
+- **Any board size** — default 24 × 18 holes at 2.54 mm pitch, plus a blank **margin** of board material set separately for the top, right, bottom and left, measured from the outer edge of the hole pads. Each side defaults to the bare gap between two neighbouring hole pads (1.23 mm). With **Dimensions** on, the board's overall width and height are drawn along its edges and dotted guides show the margin on each side.
 - **Parts library**
   - Microcontrollers: ESP32-C3 Super Mini (default), Seeed XIAO ESP32-C6, ESP32 DevKitC (38-pin)
   - Connectors and headers: JST-XH 2/3/4-pin, female berg strips 1×3, 4, 5, 6, 8, 10 and 12
@@ -74,14 +74,14 @@ Keyboard shortcuts: `W` switches Place / Wire (the board turns dark in Wire mode
   "app": "perfboard-planner",
   "version": 3,
   "name": "My board",
-  "board": { "cols": 24, "rows": 18, "margin": 2.54 },
+  "board": { "cols": 24, "rows": 18, "margin": { "t": 1.23, "r": 1.23, "b": 1.23, "l": 1.23 } },
   "maxJump": 8,
   "parts": [{ "id": "p1", "type": "c3mini", "ref": "U1", "x": 0, "y": 5, "rot": 3, "locked": true, "mount": "smd" }],
   "nets":  [{ "name": "", "pins": ["p1:9", "p2:1"] }]
 }
 ```
 
-`x`/`y` are the top-left hole of the part's footprint. `rot` is in 90° steps clockwise. `margin` is the blank board edge in mm. `mount` is `"smdon"` for castellated pads on the holes or `"smd"` for castellated pads bridged to the holes outside. Net pins are `partId:pinIndex`.
+`x`/`y` are the top-left hole of the part's footprint. `rot` is in 90° steps clockwise. `margin` holds the blank board edge per side in mm (a single number applies to every side). `mount` is `"smdon"` for castellated pads on the holes or `"smd"` for castellated pads bridged to the holes outside. Net pins are `partId:pinIndex`.
 
 ## License
 

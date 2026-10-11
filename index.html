@@ -65,6 +65,8 @@ button,input,textarea{font:inherit;color:inherit}
 .brand span{font:500 12px var(--mono);color:var(--muted)}
 .controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .field{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.margins input{width:60px!important}
+.margins label{font:600 10px var(--mono);color:var(--muted)}
 .field input{width:56px;padding:5px 6px;border:1px solid var(--line);border-radius:6px;background:var(--panel);font:500 13px var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
 .times{font-family:var(--mono);color:var(--muted)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
@@ -207,7 +209,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.prow:focus-visi
 .band{stroke:var(--src);stroke-width:1.8;stroke-dasharray:5 4;opacity:.9}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.srcring{animation:none}}
-.flipnote{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font:600 11.5px var(--body);color:var(--warn);background:var(--warn-soft);border:1px solid var(--warn);border-radius:999px;padding:4px 12px;pointer-events:none;white-space:nowrap;max-width:calc(100% - 16px);overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .15s}
+.flipnote{position:absolute;bottom:8px;left:46px;font:600 11.5px var(--body);color:var(--warn);background:var(--warn-soft);border:1px solid var(--warn);border-radius:999px;padding:4px 12px;pointer-events:none;white-space:nowrap;max-width:calc(100% - 16px);overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .15s}
 .flipnote.on{opacity:.95}
 @media (prefers-reduced-motion:reduce){.flipnote{transition:none}}
 
@@ -347,9 +349,12 @@ ol.steps li.grp-title{counter-increment:none}
         <input id="boardRows" type="number" min="6" max="80" inputmode="numeric" aria-label="Rows (holes down)">
         holes
       </label>
-      <label class="field" for="boardMargin" title="Blank board material past the outer edge of the hole pads, on every side">Margin
-        <input id="boardMargin" type="number" min="0" max="40" step="0.1" inputmode="decimal" aria-label="Blank margin in millimetres"> mm
-      </label>
+      <div class="field margins" title="Blank board material past the outer edge of the hole pads, per side (component-side view)">Margin mm
+        <label for="mT">T</label><input id="mT" data-side="t" type="number" min="0" max="40" step="0.01" inputmode="decimal" aria-label="Top margin in millimetres">
+        <label for="mR">R</label><input id="mR" data-side="r" type="number" min="0" max="40" step="0.01" inputmode="decimal" aria-label="Right margin in millimetres">
+        <label for="mB">B</label><input id="mB" data-side="b" type="number" min="0" max="40" step="0.01" inputmode="decimal" aria-label="Bottom margin in millimetres">
+        <label for="mL">L</label><input id="mL" data-side="l" type="number" min="0" max="40" step="0.01" inputmode="decimal" aria-label="Left margin in millimetres">
+      </div>
       <label class="field" for="maxJump">Jumpers
         <select id="maxJump" class="sel">
           <option value="0">None</option><option value="4">Up to 4 holes</option><option value="6">Up to 6 holes</option><option value="8">Up to 8 holes</option><option value="12">Up to 12 holes</option>
@@ -398,7 +403,7 @@ ol.steps li.grp-title{counter-increment:none}
       <div class="board-wrap" id="boardWrap">
         <svg id="board" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Perfboard layout"><g id="boardLayer"></g><g id="partsLayer"></g><g id="routeLayer"></g><g id="ratsLayer"></g><g id="overlayLayer"></g></svg>
       </div>
-      <div class="flipnote" id="flipnote" aria-live="polite">Solder side · mirrored · columns run right to left</div>
+      <div class="flipnote" id="flipnote" aria-live="polite">Solder side · mirrored</div>
       <div class="float l"><button class="fbtn" type="button" id="fbParts" aria-pressed="true" title="Show or hide the parts list"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M1 3h12M1 7h12M1 11h12" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>Parts</button></div>
       <div class="float r">
         <button class="fbtn" type="button" id="fbDetails" aria-pressed="true" title="Board and part details"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M4 5h6M4 8h4" stroke="currentColor" stroke-width="1.6"/></svg>Details</button>
@@ -428,11 +433,16 @@ ol.steps li.grp-title{counter-increment:none}
 (function(){
 const PITCH=24, KEY='perfboard-planner-v1';
 /* MARGIN = offset from the drawing's top-left to the first hole cell; it grows with the board's blank margin and the dimension lines */
-let MARGIN=30;
-const MM=PITCH/2.54, PAD_R=6.2, PAD_R_MM=PAD_R/MM, LABEL=30, DEF_MARGIN_MM=2.54;
-function marginMM(){const m=state.board.margin;return m===undefined||m===null||isNaN(+m)?DEF_MARGIN_MM:+m;}
+let MARGIN=30, MARGIN_Y=30;
+const MM=PITCH/2.54, PAD_R=6.2, PAD_R_MM=PAD_R/MM, LABEL=30;
+/* default blank margin = the bare gap between the outer edges of two neighbouring hole pads */
+const DEF_MARGIN_MM=Math.round((2.54-2*PAD_R_MM)*100)/100;
+const SIDES=['t','r','b','l'], SIDE_NAME={t:'top',r:'right',b:'bottom',l:'left'};
+/* per-side blank margins in mm, on the physical board (left/right as seen from the component side) */
+function margins(){const m=state.board.margin,o={};for(const k of SIDES){const v=m&&typeof m==='object'?m[k]:m;o[k]=v===undefined||v===null||isNaN(+v)?DEF_MARGIN_MM:+v;}return o;}
+function cleanMargin(m){const o={};for(const k of SIDES){const v=m&&typeof m==='object'?m[k]:m;o[k]=v===undefined||v===null||v===''||isNaN(+v)?DEF_MARGIN_MM:Math.round(clamp(+v,0,40)*100)/100;}return o;}
 /* physical board size: hole span + pad rings + blank margin on every side */
-function boardMM(){const m=marginMM(),{cols,rows}=state.board;return{w:(cols-1)*2.54+2*PAD_R_MM+2*m,h:(rows-1)*2.54+2*PAD_R_MM+2*m,m};}
+function boardMM(){const m=margins(),{cols,rows}=state.board;return{w:(cols-1)*2.54+2*PAD_R_MM+m.l+m.r,h:(rows-1)*2.54+2*PAD_R_MM+m.t+m.b,m};}
 const $=s=>document.querySelector(s);
 const svg=$('#board'), boardLayer=$('#boardLayer'), partsLayer=$('#partsLayer'), ratsLayer=$('#ratsLayer'), overlayLayer=$('#overlayLayer'), routeLayer=$('#routeLayer');
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -748,7 +758,7 @@ const state={board:{cols:24,rows:18},parts:[],nets:[],seq:1,netSeq:1,sel:null,se
 let undoStack=[];
 
 function seedSample(){
-  state.board={cols:24,rows:18,margin:DEF_MARGIN_MM}; state.seq=1; state.netSeq=1;
+  state.board={cols:24,rows:18,margin:cleanMargin()}; state.seq=1; state.netSeq=1;
   const mk=(type,ref,x,y,rot,extra)=>Object.assign({id:'p'+(state.seq++),type,ref,x,y,rot,locked:false},extra||{});
   state.parts=[
     mk('c3mini','U1',0,5,3,{locked:true}),  // p1
@@ -837,8 +847,7 @@ function cleanNets(arr,parts){
 }
 function cleanBoard(b){
   if(!b)return null;
-  const m=b.margin===undefined||b.margin===null||isNaN(+b.margin)?DEF_MARGIN_MM:clamp(+b.margin,0,40);
-  return {cols:clamp(Math.round(+b.cols||24),6,80),rows:clamp(Math.round(+b.rows||18),6,80),margin:Math.round(m*100)/100};
+  return {cols:clamp(Math.round(+b.cols||24),6,80),rows:clamp(Math.round(+b.rows||18),6,80),margin:cleanMargin(b.margin)};
 }
 function load(){
   try{
@@ -882,7 +891,7 @@ function freeSpot(t,margin,ignoreId){
 function colName(c){let s='';c=c+1;while(c>0){const m=(c-1)%26;s=String.fromCharCode(65+m)+s;c=Math.floor((c-1)/26);}return s;}
 function hole(c,r){return colName(c)+(r+1);}
 function hx(c){const cc=state.flip?state.board.cols-1-c:c;return MARGIN+cc*PITCH+PITCH/2;}
-function hy(r){return MARGIN+r*PITCH+PITCH/2;}
+function hy(r){return MARGIN_Y+r*PITCH+PITCH/2;}
 function rectFor(x,y,W,H){
   const a=hx(x),b=hx(x+W-1); const x0=Math.min(a,b)-PITCH/2, x1=Math.max(a,b)+PITCH/2;
   return {x:x0,y:hy(y)-PITCH/2,w:x1-x0,h:H*PITCH};
@@ -1148,12 +1157,14 @@ function setZoom(z,anchor){
   wrap.scrollLeft=fx*wrap.scrollWidth-ax; wrap.scrollTop=fy*wrap.scrollHeight-ay;
 }
 function renderBoard(){
-  const{cols,rows}=state.board, mPx=marginMM()*MM, dims=ui.dims!==false, DIM=dims?44:6;
-  MARGIN=LABEL-PITCH/2+PAD_R+mPx;
-  const x0=hx(0),y0=hy(0), L=Math.min(x0,hx(cols-1))-PAD_R-mPx, T=y0-PAD_R-mPx;
-  const Wd=(cols-1)*PITCH+2*PAD_R+2*mPx, Hd=(rows-1)*PITCH+2*PAD_R+2*mPx, Rr=L+Wd, B=T+Hd;
+  const{cols,rows}=state.board, dims=ui.dims!==false, DIM=dims?44:6, m=margins();
+  /* on the solder side the board is seen mirrored, so the physical right margin is drawn on the left */
+  const ml=(state.flip?m.r:m.l)*MM, mr=(state.flip?m.l:m.r)*MM, mt=m.t*MM, mb=m.b*MM;
+  MARGIN=LABEL-PITCH/2+PAD_R+ml; MARGIN_Y=LABEL-PITCH/2+PAD_R+mt;
+  const xa=Math.min(hx(0),hx(cols-1)), xb=Math.max(hx(0),hx(cols-1)), ya=hy(0), yb0=hy(rows-1);
+  const L=xa-PAD_R-ml, T=ya-PAD_R-mt, Rr=xb+PAD_R+mr, B=yb0+PAD_R+mb, Wd=Rr-L, Hd=B-T;
   svg.setAttribute('viewBox',`0 0 ${Rr+DIM+8} ${B+DIM+8}`);
-  let s=`<rect class="fr4" x="${L}" y="${T}" width="${Wd}" height="${Hd}" rx="${Math.min(7,3+mPx/3)}"/>`;
+  let s=`<rect class="fr4" x="${L}" y="${T}" width="${Wd}" height="${Hd}" rx="${Math.min(7,3+Math.min(ml,mr,mt,mb)/3)}"/>`;
   for(let c=0;c<cols;c++) s+=`<text class="axis" x="${hx(c)}" y="${T-12}">${colName(c)}</text>`;
   for(let r=0;r<rows;r++) s+=`<text class="axis axis-row" x="${L-8}" y="${hy(r)}">${r+1}</text>`;
   if(dims){
@@ -1166,15 +1177,19 @@ function renderBoard(){
        `<path d="M${xr} ${T} l-3 7 h6z M${xr} ${B} l-3 -7 h6z"/></g>`+
        `<text class="dim-t" x="${(L+Rr)/2}" y="${yb+13}">${f1(bm.w)} mm  (${(bm.w/25.4).toFixed(2)} in)</text>`+
        `<text class="dim-t" transform="translate(${xr+13} ${(T+B)/2}) rotate(-90)">${f1(bm.h)} mm  (${(bm.h/25.4).toFixed(2)} in)</text>`;
-    /* blank-margin guides: dotted from the outer edge of the hole pads to the board edge, one per side */
-    if(mPx>.5){
-      const mt=`${bm.m.toFixed(2).replace(/\.?0+$/,'')} mm`, cmid=hx(Math.floor((cols-1)/2)), rmid=hy(Math.floor((rows-1)/2));
-      const xl=Math.min(x0,hx(cols-1))-PAD_R, xrr=Math.max(x0,hx(cols-1))+PAD_R, yt=y0-PAD_R, ybb=hy(rows-1)+PAD_R;
-      s+=`<g class="mguide"><line x1="${xl}" y1="${rmid}" x2="${L}" y2="${rmid}"/><line x1="${xrr}" y1="${rmid}" x2="${Rr}" y2="${rmid}"/>`+
-         `<line x1="${cmid}" y1="${yt}" x2="${cmid}" y2="${T}"/><line x1="${cmid}" y1="${ybb}" x2="${cmid}" y2="${B}"/></g>`+
-         `<text class="mguide-t" x="${(xl+L)/2}" y="${rmid-6}">${mt}</text><text class="mguide-t" x="${(xrr+Rr)/2}" y="${rmid-6}">${mt}</text>`+
-         `<text class="mguide-t" x="${cmid+5}" y="${(yt+T)/2}" style="text-anchor:start">${mt}</text><text class="mguide-t" x="${cmid+5}" y="${(ybb+B)/2}" style="text-anchor:start">${mt}</text>`;
-    }
+    /* blank-margin guides: dotted from the outer edge of the hole pads to the board edge, labelled per side */
+    const lab=v=>`${(+v.toFixed(2))} mm`, cmid=hx(Math.floor((cols-1)/2)), rmid=hy(Math.floor((rows-1)/2));
+    const xl=xa-PAD_R, xrr=xb+PAD_R, yt=ya-PAD_R, ybb=yb0+PAD_R, vl=state.flip?m.r:m.l, vr=state.flip?m.l:m.r;
+    s+='<g class="mguide">';
+    if(ml>.5) s+=`<line x1="${xl}" y1="${rmid}" x2="${L}" y2="${rmid}"/>`;
+    if(mr>.5) s+=`<line x1="${xrr}" y1="${rmid}" x2="${Rr}" y2="${rmid}"/>`;
+    if(mt>.5) s+=`<line x1="${cmid}" y1="${yt}" x2="${cmid}" y2="${T}"/>`;
+    if(mb>.5) s+=`<line x1="${cmid}" y1="${ybb}" x2="${cmid}" y2="${B}"/>`;
+    s+='</g>';
+    if(ml>.5) s+=`<text class="mguide-t" x="${(xl+L)/2}" y="${rmid-7}">${lab(vl)}</text>`;
+    if(mr>.5) s+=`<text class="mguide-t" x="${(xrr+Rr)/2}" y="${rmid-7}">${lab(vr)}</text>`;
+    if(mt>.5) s+=`<text class="mguide-t" x="${cmid+5}" y="${(yt+T)/2}" style="text-anchor:start">${lab(m.t)}</text>`;
+    if(mb>.5) s+=`<text class="mguide-t" x="${cmid+5}" y="${(ybb+B)/2}" style="text-anchor:start">${lab(m.b)}</text>`;
   }
   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
     const x=hx(c),y=hy(r); s+=`<circle class="ring" cx="${x}" cy="${y}" r="6.2"/><circle class="drill" cx="${x}" cy="${y}" r="2.5"/>`;
@@ -1456,7 +1471,7 @@ function renderInspector(cf){
       return `<button class="prow" type="button" data-pick="${q.id}"><b>${q.ref}</b><span>${d.name}</span>${iss?'<span class="chip bad">'+iss[0]+'</span>':(q.locked?'<span class="chip acc">Locked</span>':'<span class="chip ok">OK</span>')}</button>`;}).join('');
     const netRows=state.nets.map(n=>{const iss=netIssues(n);
       return `<button class="prow net" type="button" data-net="${n.id}"><b>${netBadge(n)}<span>${esc(netName(n))}</span></b><span class="chip">${n.pins.length} pins</span>${iss.length?`<span class="chip ${iss[0].sev}">${iss[0].sev==='bad'?'Problem':'Check'}</span>`:'<span class="chip ok">OK</span>'}</button>`;}).join('');
-    el.innerHTML=`<div><h2>${cols} × ${rows}</h2><p class="sub">holes · 2.54 mm pitch · double-sided</p><p class="sub">Board ${boardMM().w.toFixed(1)} × ${boardMM().h.toFixed(1)} mm, including a ${marginMM()} mm blank margin past the hole pads on every side</p></div>
+    el.innerHTML=`<div><h2>${cols} × ${rows}</h2><p class="sub">holes · 2.54 mm pitch · double-sided</p><p class="sub">Board ${boardMM().w.toFixed(1)} × ${boardMM().h.toFixed(1)} mm, with blank margins past the hole pads of ${(()=>{const m=margins();return SIDES.map(k=>`${SIDE_NAME[k]} ${m[k]}`).join(', ');})()} mm</p></div>
       <div class="chips">${state.sample?'<span class="chip warn">Sample circuit</span>':''}<span class="chip">${state.parts.length} part${state.parts.length===1?'':'s'}</span><span class="chip">${state.nets.length} net${state.nets.length===1?'':'s'}</span></div>
       ${issueHtml}
       <div><h3 style="margin-bottom:6px">Nets</h3><div class="plist">${netRows||'<p class="note">No connections yet. Switch to Wire, tap a pin, then tap the pin it connects to.</p>'}</div></div>
@@ -1486,7 +1501,7 @@ function renderPalette(){
 }
 function renderAll(){
   $('#boardCols').value=state.board.cols; $('#boardRows').value=state.board.rows;
-  if(document.activeElement!==$('#boardMargin')) $('#boardMargin').value=marginMM();
+  {const m=margins(); for(const k of SIDES){const el=$('#m'+k.toUpperCase()); if(document.activeElement!==el) el.value=m[k];}}
   $('#showDims').checked=ui.dims!==false;
   if(document.activeElement!==$('#projName')) $('#projName').value=state.name;
   $('#sideTop').setAttribute('aria-pressed',String(!state.flip));
@@ -1597,7 +1612,7 @@ function svgPt(e){
 }
 function cellAt(e){
   const q=svgPt(e); if(!q)return{c:-1,r:-1};
-  let c=Math.floor((q.x-MARGIN)/PITCH); const r=Math.floor((q.y-MARGIN)/PITCH);
+  let c=Math.floor((q.x-MARGIN)/PITCH); const r=Math.floor((q.y-MARGIN_Y)/PITCH);
   if(state.flip)c=state.board.cols-1-c;
   return{c,r};
 }
@@ -1729,17 +1744,18 @@ document.addEventListener('click',e=>{
 function boardInput(){
   const c=clamp(Math.round(+$('#boardCols').value||24),6,80), r=clamp(Math.round(+$('#boardRows').value||18),6,80);
   if(c===state.board.cols&&r===state.board.rows)return;
-  const snap=snapshot(); state.board={cols:c,rows:r,margin:marginMM()}; pushUndo(snap); save(); renderAll();
+  const snap=snapshot(); state.board={cols:c,rows:r,margin:margins()}; pushUndo(snap); save(); renderAll();
   const nbad=Object.keys(conflicts()).length;
   if(nbad) toast(`${nbad} part${nbad>1?'s':''} now off the board. Move or remove them.`);
   else if(routesOk()&&!state.routes.empty&&state.routeSigNB===routeSigNB()) toast('Board resized and your wires kept. Tap Re-route to use the new space.');
 }
 $('#boardCols').addEventListener('change',boardInput);
-$('#boardMargin').addEventListener('change',e=>{
-  const v=Math.round(clamp(+e.target.value||0,0,40)*100)/100; if(v===marginMM()){e.target.value=v;return;}
-  const snap=snapshot(); state.board={...state.board,margin:v}; pushUndo(snap); save(); renderAll();
-  toast(`Margin ${v} mm on every side: the board is now ${boardMM().w.toFixed(1)} × ${boardMM().h.toFixed(1)} mm.`);
-});
+document.querySelectorAll('.margins input').forEach(inp=>inp.addEventListener('change',e=>{
+  const k=e.target.dataset.side, cur=margins(), v=e.target.value===''?DEF_MARGIN_MM:Math.round(clamp(+e.target.value||0,0,40)*100)/100;
+  if(v===cur[k]){e.target.value=v;return;}
+  const snap=snapshot(); state.board={...state.board,margin:{...cur,[k]:v}}; pushUndo(snap); save(); renderAll();
+  toast(`${SIDE_NAME[k][0].toUpperCase()+SIDE_NAME[k].slice(1)} margin ${v} mm: the board is now ${boardMM().w.toFixed(1)} × ${boardMM().h.toFixed(1)} mm. Clear a box to reset it to ${DEF_MARGIN_MM} mm.`);
+}));
 $('#showDims').addEventListener('change',e=>{ui.dims=e.target.checked;saveUi();renderAll();});
 $('#boardRows').addEventListener('change',boardInput);
 $('#sideTop').addEventListener('click',()=>{state.flip=false;renderAll();});
@@ -1922,7 +1938,7 @@ const saveProject=()=>saveFile(`perfboard-${slug(state.name)}.json`,JSON.stringi
 $('#saveBtn').addEventListener('click',saveProject);
 function startNew(){
   const snap=snapshot();
-  state.board={cols:24,rows:18,margin:DEF_MARGIN_MM}; state.parts=[]; state.nets=[]; state.seq=1; state.netSeq=1; state.name='';
+  state.board={cols:24,rows:18,margin:cleanMargin()}; state.parts=[]; state.nets=[]; state.seq=1; state.netSeq=1; state.name='';
   state.sel=null; state.selNet=null; state.wireSrc=null; state.mode='place'; state.sample=false;
   pushUndo(snap); save(); renderAll();
   toast('New project started. Add your microcontroller from the parts list first.');
@@ -2149,7 +2165,7 @@ function applyImport(){
   let cols=clamp(Math.round(+imp.cols||24),6,80), rows=clamp(Math.round(+imp.rows||18),6,80);
   const mcu=a.parts.find(p=>LIB[p.type].kind==='mcu'), others=a.parts.filter(p=>p!==mcu);
   for(let attempt=0;attempt<8;attempt++){
-    state.board={cols,rows,margin:marginMM()}; state.parts=[]; let ok=true;
+    state.board={cols,rows,margin:margins()}; state.parts=[]; let ok=true;
     if(mcu){const s=suggest(mcu); if(!s){ok=false;} else {Object.assign(mcu,s);state.parts.push(mcu);}}
     if(ok){
       let x0=0; if(mcu){const g=geom(mcu);x0=g.x+g.W+1;}
