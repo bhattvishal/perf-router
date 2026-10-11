@@ -6,14 +6,14 @@ It is a single static `index.html`: no build step, no server, no dependencies. O
 
 ## Features
 
-- **Any board size** — default 24 × 18 holes at 2.54 mm pitch.
+- **Any board size** — default 24 × 18 holes at 2.54 mm pitch, plus a blank **margin** of board material (default 0.1 in / 2.54 mm) measured from the outer edge of the hole pads on every side. With **Dimensions** on, the board's overall width and height are drawn along its edges and dotted guides show the margin on each side.
 - **Parts library**
   - Microcontrollers: ESP32-C3 Super Mini (default), Seeed XIAO ESP32-C6, ESP32 DevKitC (38-pin)
   - Connectors and headers: JST-XH 2/3/4-pin, female berg strips 1×3, 4, 5, 6, 8, 10 and 12
   - Passives and LEDs: resistor and diode (adjustable lead spacing), 5 mm LED, WS2812 pixel LED (5 mm and 3-pin module), WS2812B 5050 SMD LED drawn at true size with its off-grid pads bridged to the nearest holes
   - Sound and switches: active and passive 12 mm buzzers, 6 × 6 mm push button, 3-pin slide switch (SPDT)
   - Modules: DHT22 (bare 4-pin and 3-pin module), DRV8833 motor driver, VEML6030 light sensor, VL53L0X / VL53L1X ToF sensor, INMP441 I2S microphone
-- **Castellated (SMD) mounting** — the C3 Super Mini and XIAO C6 can lie flat and solder from their edge pads. The module is drawn at its real size and stays put; only the solder points move one hole outward on each side. This works on locked parts too.
+- **Castellated (SMD) mounting** — the C3 Super Mini and XIAO C6 have three mounts: through-hole pins, castellated pads lying directly on the holes (same 2.54 mm grid, solder pad and hole together), or castellated pads bridged to the hole just outside each pad. The module is drawn at its real size and stays put when you switch; this works on locked parts too.
 - **Placement** — drag and drop on the hole grid, rotate, lock, overlap checks (a part may overhang the board edge as long as every solder point lands on a hole), and auto-suggested spots near the microcontroller. The microcontroller lands on the board edge with USB facing out.
 - **Component organizer** — places every unlocked part for short wires and as few jumpers as possible. Locked parts stay put, and the microcontroller keeps its USB at an edge.
 - **Click-to-wire** — in Wire mode, tap a pin and then the pin it connects to. Nets merge automatically, power nets are named (GND is always black, 5V and 3V3 always red), and each pin shows its GPIO label.
@@ -74,14 +74,14 @@ Keyboard shortcuts: `W` switches Place / Wire (the board turns dark in Wire mode
   "app": "perfboard-planner",
   "version": 3,
   "name": "My board",
-  "board": { "cols": 24, "rows": 18 },
+  "board": { "cols": 24, "rows": 18, "margin": 2.54 },
   "maxJump": 8,
   "parts": [{ "id": "p1", "type": "c3mini", "ref": "U1", "x": 0, "y": 5, "rot": 3, "locked": true, "mount": "smd" }],
   "nets":  [{ "name": "", "pins": ["p1:9", "p2:1"] }]
 }
 ```
 
-`x`/`y` are the top-left hole of the part's footprint. `rot` is in 90° steps clockwise. `mount: "smd"` marks a castellated board laid flat. Net pins are `partId:pinIndex`.
+`x`/`y` are the top-left hole of the part's footprint. `rot` is in 90° steps clockwise. `margin` is the blank board edge in mm. `mount` is `"smdon"` for castellated pads on the holes or `"smd"` for castellated pads bridged to the holes outside. Net pins are `partId:pinIndex`.
 
 ## License
 

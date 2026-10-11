@@ -95,7 +95,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.prow:focus-visi
 .pgroup>summary .cnt{font:500 11px var(--mono);color:var(--muted);margin-left:auto}
 .pal-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .pal-head h2{font:600 18px var(--display);margin:0}
-.pal-head small{color:var(--muted);font-size:12px}
+.pal-head small{color:var(--muted);font-size:12px;margin-left:auto}
 .pitems{display:grid;gap:6px}
 @media (max-width:1040px){.pitems{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}}
 .pitem{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--panel-2);border-radius:9px;padding:7px 9px;cursor:pointer}
@@ -140,6 +140,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.prow:focus-visi
 .drill{fill:var(--drill)}
 .axis{font:500 9px var(--mono);fill:var(--muted);text-anchor:middle;dominant-baseline:central}
 .axis-row{text-anchor:end}
+.dim line{stroke:var(--muted);stroke-width:1}
+.dim path{fill:var(--muted)}
+.dim-t{font:600 10px var(--mono);fill:var(--ink);text-anchor:middle;dominant-baseline:central;white-space:pre}
+.mguide line{stroke:#f4ecc8;stroke-width:1.3;stroke-dasharray:2 2.5}
+.mguide-t{font:600 7.5px var(--mono);fill:#f4ecc8;text-anchor:middle;dominant-baseline:central}
 .part{cursor:grab;touch-action:none}
 .part.locked{cursor:pointer}
 .wiremode .part,.wiremode{cursor:crosshair}
@@ -154,6 +159,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.prow:focus-visi
 .b-pcb{fill:var(--pcb);stroke:var(--pcb);stroke-width:1}
 .pin{fill:var(--pin);stroke:var(--pin-edge);stroke-width:1}
 .castle{stroke:#c9ced2;stroke-width:4.5;stroke-linecap:round}
+.castle-tab{stroke:var(--pin);stroke-width:7;stroke-linecap:butt}
 .castle-pad{fill:var(--pin);stroke:var(--pin-edge);stroke-width:1}
 .b-mcu-btn{fill:#e4e6e8;stroke:#8a8f95;stroke-width:.8}
 .b-mcu-chip{fill:#111214;stroke:#2d3036;stroke-width:1}
@@ -206,7 +212,14 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.prow:focus-visi
 @media (prefers-reduced-motion:reduce){.flipnote{transition:none}}
 
 /* selection bar */
-.selbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;border:1px dashed var(--line);border-radius:10px;min-height:46px}
+.selbar{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;padding:6px 10px;border:1px dashed var(--line);border-radius:10px;height:46px;flex:none;overflow:hidden}
+.selbar .hint{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.selbar>.hint{flex:1 1 auto}
+.selbar .who{display:flex;align-items:baseline;gap:6px;white-space:nowrap;overflow:hidden}
+.selbar .btn{flex:none}
+.board-bar.info{flex-wrap:nowrap;height:20px;overflow:hidden;flex:none}
+.board-bar.info .status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 0}
+.board-bar.info .meter{flex-wrap:nowrap;white-space:nowrap;flex:0 1 auto;overflow:hidden}
 .selbar.wire{border-color:var(--accent);background:var(--accent-soft)}
 .selbar .who{margin-right:auto;min-width:0}
 .selbar .who b{font:700 18px var(--display);margin-right:6px}
@@ -334,6 +347,9 @@ ol.steps li.grp-title{counter-increment:none}
         <input id="boardRows" type="number" min="6" max="80" inputmode="numeric" aria-label="Rows (holes down)">
         holes
       </label>
+      <label class="field" for="boardMargin" title="Blank board material past the outer edge of the hole pads, on every side">Margin
+        <input id="boardMargin" type="number" min="0" max="40" step="0.1" inputmode="decimal" aria-label="Blank margin in millimetres"> mm
+      </label>
       <label class="field" for="maxJump">Jumpers
         <select id="maxJump" class="sel">
           <option value="0">None</option><option value="4">Up to 4 holes</option><option value="6">Up to 6 holes</option><option value="8">Up to 8 holes</option><option value="12">Up to 12 holes</option>
@@ -348,7 +364,7 @@ ol.steps li.grp-title{counter-increment:none}
   </header>
 
   <aside class="panel pal" aria-label="Parts drawer">
-    <div class="pal-head"><h2>Parts</h2><small>Tap to add</small></div>
+    <div class="pal-head"><h2>Parts</h2><small>Tap to add</small><button class="btn sm" type="button" id="palClose" aria-label="Hide the parts panel">Hide</button></div>
     <div id="palette"></div>
   </aside>
 
@@ -365,6 +381,7 @@ ol.steps li.grp-title{counter-increment:none}
       <div class="bar-tools">
         <label class="check" for="showRoutes"><input id="showRoutes" type="checkbox" checked> Routes</label>
         <label class="check" for="showRats"><input id="showRats" type="checkbox" checked> Ratsnest</label>
+        <label class="check" for="showDims"><input id="showDims" type="checkbox" checked> Dimensions</label>
         <div class="zoom">
           <button class="btn" id="zoomOut" type="button" aria-label="Zoom out">−</button>
           <output id="zoomVal">100%</output>
@@ -373,7 +390,7 @@ ol.steps li.grp-title{counter-increment:none}
         </div>
       </div>
     </div>
-    <div class="board-bar">
+    <div class="board-bar info">
       <div class="status" id="status">Hover or tap a hole to see its coordinate.</div>
       <div class="meter" id="meter"></div>
     </div>
@@ -409,7 +426,13 @@ ol.steps li.grp-title{counter-increment:none}
 
 <script>
 (function(){
-const PITCH=24, MARGIN=30, KEY='perfboard-planner-v1';
+const PITCH=24, KEY='perfboard-planner-v1';
+/* MARGIN = offset from the drawing's top-left to the first hole cell; it grows with the board's blank margin and the dimension lines */
+let MARGIN=30;
+const MM=PITCH/2.54, PAD_R=6.2, PAD_R_MM=PAD_R/MM, LABEL=30, DEF_MARGIN_MM=2.54;
+function marginMM(){const m=state.board.margin;return m===undefined||m===null||isNaN(+m)?DEF_MARGIN_MM:+m;}
+/* physical board size: hole span + pad rings + blank margin on every side */
+function boardMM(){const m=marginMM(),{cols,rows}=state.board;return{w:(cols-1)*2.54+2*PAD_R_MM+2*m,h:(rows-1)*2.54+2*PAD_R_MM+2*m,m};}
 const $=s=>document.querySelector(s);
 const svg=$('#board'), boardLayer=$('#boardLayer'), partsLayer=$('#partsLayer'), ratsLayer=$('#ratsLayer'), overlayLayer=$('#overlayLayer'), routeLayer=$('#routeLayer');
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -709,6 +732,7 @@ function getDef(p){
     return {...d0,w:s+1,h:1,pins:[{x:0,y:0,name:d0.pinNames[0],short:'',in:[0,0]},{x:s,y:0,name:d0.pinNames[1],short:'',in:[0,0]}]};
   }
   let d=LIB[p.type];
+  if(p.mount==='smdon'&&d.castellated) d={...d,smdOn:true};
   if(p.mount==='smd'&&d.castellated){
     const w=d.w;
     d={...d,w:w+2,smd:true,pins:d.pins.map(q=>({...q,x:q.x===0?0:w+1}))};
@@ -724,7 +748,7 @@ const state={board:{cols:24,rows:18},parts:[],nets:[],seq:1,netSeq:1,sel:null,se
 let undoStack=[];
 
 function seedSample(){
-  state.board={cols:24,rows:18}; state.seq=1; state.netSeq=1;
+  state.board={cols:24,rows:18,margin:DEF_MARGIN_MM}; state.seq=1; state.netSeq=1;
   const mk=(type,ref,x,y,rot,extra)=>Object.assign({id:'p'+(state.seq++),type,ref,x,y,rot,locked:false},extra||{});
   state.parts=[
     mk('c3mini','U1',0,5,3,{locked:true}),  // p1
@@ -790,7 +814,7 @@ function cleanParts(arr){
       x:Math.round(+p.x||0),y:Math.round(+p.y||0),rot:((Math.round(+p.rot||0)%4)+4)%4,locked:!!p.locked,
       ...(LIB[p.type].spanable?{span:clamp(Math.round(+p.span||LIB[p.type].defSpan||4),2,12)}:{}),
       ...(p.type==='hdr'?{n:clamp(Math.round(+p.n||5),2,12)}:{}),
-      ...(p.mount==='smd'&&LIB[p.type].castellated?{mount:'smd'}:{}),
+      ...((p.mount==='smd'||p.mount==='smdon')&&LIB[p.type].castellated?{mount:p.mount}:{}),
       ...(Array.isArray(p.labels)?{labels:p.labels.slice(0,12).map(s=>String(s||'').replace(/[<>&"']/g,'').slice(0,12))}:{}),
       ...(p.from?{from:String(p.from).replace(/[<>&"']/g,'').slice(0,48)}:{})});
   }
@@ -813,7 +837,8 @@ function cleanNets(arr,parts){
 }
 function cleanBoard(b){
   if(!b)return null;
-  return {cols:clamp(Math.round(+b.cols||24),6,80),rows:clamp(Math.round(+b.rows||18),6,80)};
+  const m=b.margin===undefined||b.margin===null||isNaN(+b.margin)?DEF_MARGIN_MM:clamp(+b.margin,0,40);
+  return {cols:clamp(Math.round(+b.cols||24),6,80),rows:clamp(Math.round(+b.rows||18),6,80),margin:Math.round(m*100)/100};
 }
 function load(){
   try{
@@ -1123,11 +1148,34 @@ function setZoom(z,anchor){
   wrap.scrollLeft=fx*wrap.scrollWidth-ax; wrap.scrollTop=fy*wrap.scrollHeight-ay;
 }
 function renderBoard(){
-  const{cols,rows}=state.board;
-  svg.setAttribute('viewBox',`0 0 ${cols*PITCH+MARGIN*2} ${rows*PITCH+MARGIN*2}`);
-  let s=`<rect class="fr4" x="${MARGIN-8}" y="${MARGIN-8}" width="${cols*PITCH+16}" height="${rows*PITCH+16}" rx="7"/>`;
-  for(let c=0;c<cols;c++) s+=`<text class="axis" x="${hx(c)}" y="${MARGIN-16}">${colName(c)}</text>`;
-  for(let r=0;r<rows;r++) s+=`<text class="axis axis-row" x="${MARGIN-12}" y="${hy(r)}">${r+1}</text>`;
+  const{cols,rows}=state.board, mPx=marginMM()*MM, dims=ui.dims!==false, DIM=dims?44:6;
+  MARGIN=LABEL-PITCH/2+PAD_R+mPx;
+  const x0=hx(0),y0=hy(0), L=Math.min(x0,hx(cols-1))-PAD_R-mPx, T=y0-PAD_R-mPx;
+  const Wd=(cols-1)*PITCH+2*PAD_R+2*mPx, Hd=(rows-1)*PITCH+2*PAD_R+2*mPx, Rr=L+Wd, B=T+Hd;
+  svg.setAttribute('viewBox',`0 0 ${Rr+DIM+8} ${B+DIM+8}`);
+  let s=`<rect class="fr4" x="${L}" y="${T}" width="${Wd}" height="${Hd}" rx="${Math.min(7,3+mPx/3)}"/>`;
+  for(let c=0;c<cols;c++) s+=`<text class="axis" x="${hx(c)}" y="${T-12}">${colName(c)}</text>`;
+  for(let r=0;r<rows;r++) s+=`<text class="axis axis-row" x="${L-8}" y="${hy(r)}">${r+1}</text>`;
+  if(dims){
+    const bm=boardMM(), f1=v=>v.toFixed(1);
+    /* overall size along the bottom and right edges */
+    const yb=B+16, xr=Rr+16;
+    s+=`<g class="dim"><line x1="${L}" y1="${B+4}" x2="${L}" y2="${yb+5}"/><line x1="${Rr}" y1="${B+4}" x2="${Rr}" y2="${yb+5}"/><line x1="${L}" y1="${yb}" x2="${Rr}" y2="${yb}"/>`+
+       `<path d="M${L} ${yb} l7 -3 v6z M${Rr} ${yb} l-7 -3 v6z"/>`+
+       `<line x1="${Rr+4}" y1="${T}" x2="${xr+5}" y2="${T}"/><line x1="${Rr+4}" y1="${B}" x2="${xr+5}" y2="${B}"/><line x1="${xr}" y1="${T}" x2="${xr}" y2="${B}"/>`+
+       `<path d="M${xr} ${T} l-3 7 h6z M${xr} ${B} l-3 -7 h6z"/></g>`+
+       `<text class="dim-t" x="${(L+Rr)/2}" y="${yb+13}">${f1(bm.w)} mm  (${(bm.w/25.4).toFixed(2)} in)</text>`+
+       `<text class="dim-t" transform="translate(${xr+13} ${(T+B)/2}) rotate(-90)">${f1(bm.h)} mm  (${(bm.h/25.4).toFixed(2)} in)</text>`;
+    /* blank-margin guides: dotted from the outer edge of the hole pads to the board edge, one per side */
+    if(mPx>.5){
+      const mt=`${bm.m.toFixed(2).replace(/\.?0+$/,'')} mm`, cmid=hx(Math.floor((cols-1)/2)), rmid=hy(Math.floor((rows-1)/2));
+      const xl=Math.min(x0,hx(cols-1))-PAD_R, xrr=Math.max(x0,hx(cols-1))+PAD_R, yt=y0-PAD_R, ybb=hy(rows-1)+PAD_R;
+      s+=`<g class="mguide"><line x1="${xl}" y1="${rmid}" x2="${L}" y2="${rmid}"/><line x1="${xrr}" y1="${rmid}" x2="${Rr}" y2="${rmid}"/>`+
+         `<line x1="${cmid}" y1="${yt}" x2="${cmid}" y2="${T}"/><line x1="${cmid}" y1="${ybb}" x2="${cmid}" y2="${B}"/></g>`+
+         `<text class="mguide-t" x="${(xl+L)/2}" y="${rmid-6}">${mt}</text><text class="mguide-t" x="${(xrr+Rr)/2}" y="${rmid-6}">${mt}</text>`+
+         `<text class="mguide-t" x="${cmid+5}" y="${(yt+T)/2}" style="text-anchor:start">${mt}</text><text class="mguide-t" x="${cmid+5}" y="${(ybb+B)/2}" style="text-anchor:start">${mt}</text>`;
+    }
+  }
   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
     const x=hx(c),y=hy(r); s+=`<circle class="ring" cx="${x}" cy="${y}" r="6.2"/><circle class="drill" cx="${x}" cy="${y}" r="2.5"/>`;
   }
@@ -1173,13 +1221,17 @@ function partSVG(p,issues){
     if(ux!==0){w=deep;h=along;y=by-along/2;const ex=ux>0?B.x+B.w:B.x;x=ux>0?ex-deep+out:ex-out;}
     else{w=along;h=deep;x=bx-along/2;const ey=uy>0?B.y+B.h:B.y;y=uy>0?ey-deep+out:ey-out;}
     b+=`<rect class="b-usb" x="${x}" y="${y}" width="${w}" height="${h}" rx="5"/>`;
+    if(g.d.smdOn) for(const q of g.pins){ /* castellated pads lying directly over the holes: a tab from each pad to the module edge */
+      const x0=hx(q.c),y0=hy(q.r), ex=x0-q.dir[0]*f*PITCH*.5, ey=y0-q.dir[1]*PITCH*.5;
+      b+=`<line class="castle-tab" x1="${x0}" y1="${y0}" x2="${ex}" y2="${ey}"/>`;
+    }
     if(g.d.smd) for(const q of g.pins){
       const x0=hx(q.c),y0=hy(q.r), ex=x0+q.dir[0]*f*PITCH*.5, ey=y0+q.dir[1]*PITCH*.5;
       b+=`<line class="castle" x1="${x0}" y1="${y0}" x2="${ex}" y2="${ey}"/><circle class="castle-pad" cx="${ex}" cy="${ey}" r="5.4"/><circle class="drill" cx="${ex}" cy="${ey}" r="2.1"/>`;
     }
     /* labels run horizontally; on a module turned sideways only the reference fits between chip and antenna */
     b+=`<text class="t-ref${dark?' t-onmetal':''}" x="${tA[0]}" y="${tA[1]}">${p.ref}</text>`;
-    if(!((p.rot||0)%2)) b+=`<text class="t-name${dark?' t-onmetal':''}" x="${tB[0]}" y="${tB[1]}" style="font-size:8.5px">${g.d.short}${g.d.smd?' · SMD':''}</text>`;
+    if(!((p.rot||0)%2)) b+=`<text class="t-name${dark?' t-onmetal':''}" x="${tB[0]}" y="${tB[1]}" style="font-size:8.5px">${g.d.short}${g.d.smd||g.d.smdOn?' · flat':''}</text>`;
   }else if(k==='buzzer'){
     const[lx,ly]=dispPt(p,g,2.5,2);
     b+=`<circle class="b-buzz" cx="${lx}" cy="${ly}" r="${PITCH*2.35}"/><circle class="b-buzz-hole" cx="${lx}" cy="${ly}" r="${PITCH*.35}"/>`;
@@ -1316,7 +1368,7 @@ function renderSelbar(){
         ${n?'<button class="btn" type="button" data-act="unpinsrc">Disconnect this pin</button>':''}
         <button class="btn primary" type="button" data-act="stopwire">Done</button>`;
     }else{
-      el.innerHTML=`<span class="hint">Wire mode: tap a pin, then tap the pin it connects to. Keep tapping to add more pins to the same net. Tap empty board to stop.</span>`;
+      el.innerHTML=`<span class="hint" title="Tap a pin, then the pin it connects to. Keep tapping to add more pins to the same net. Tap empty board to stop.">Wire mode · tap a pin, then the pin it connects to · keep tapping to chain · tap empty board to stop</span>`;
     }
     return;
   }
@@ -1328,11 +1380,11 @@ function renderSelbar(){
     return;
   }
   const p=find(state.sel);
-  if(!p){el.innerHTML=`<span class="hint">Tap a part to move, rotate or lock it. Switch to Wire to connect pins. Keys: W place/wire · S component/solder side · R rotate · F fit · arrows nudge · Delete remove. Right-drag pans, Ctrl + wheel zooms.</span>`;return;}
+  if(!p){el.innerHTML=`<span class="hint" title="Tap a part to move, rotate or lock it. Keys: W place/wire, S component/solder side, R rotate, F fit, arrows nudge, Delete remove. Right-drag pans, Ctrl + wheel zooms.">Tap a part to edit · W wire · S side · R rotate · F fit · right-drag pans · Ctrl + wheel zooms</span>`;return;}
   const d=getDef(p);
   el.innerHTML=`<div class="who"><b>${p.ref}</b><span class="hint">${d.name}</span></div>
     <button class="btn" type="button" data-act="rotate" ${p.locked?'disabled':''}>Rotate <kbd>R</kbd></button>
-    ${d.castellated||LIB[p.type].castellated?`<button class="btn" type="button" data-act="mount" title="Castellated boards can lie flat and solder from their edge pads">${p.mount==='smd'?'Mount: castellated':'Mount: through-hole'}</button>`:''}
+    ${LIB[p.type].castellated?`<button class="btn" type="button" data-act="mount" title="Switch how the module is soldered: through-hole pins, castellated pads on the holes, or castellated pads bridged to the holes outside">Mount: ${MOUNTS[p.mount||'']}</button>`:''}
     <button class="btn" type="button" data-act="lock">${p.locked?'Unlock':'Lock'}</button>
     <button class="btn danger" type="button" data-act="delete">Delete</button>`;
 }
@@ -1373,7 +1425,7 @@ function renderInspector(cf){
     const g=geom(p), d=g.d, issues=cf[p.id];
     let chips=statusChip(issues);
     if(p.locked) chips+='<span class="chip acc">Locked</span>';
-    if(LIB[p.type].castellated) chips+=`<span class="chip">${p.mount==='smd'?'Castellated (SMD) mount':'Through-hole mount'}</span>`;
+    if(LIB[p.type].castellated) chips+=`<label class="chip" for="mountSel" style="display:inline-flex;gap:6px;align-items:center">Mount <select id="mountSel" class="sel" style="padding:1px 4px;font-size:11px">${Object.entries(MOUNTS).map(([v,t])=>`<option value="${v}"${(p.mount||'')===v?' selected':''}>${t}</option>`).join('')}</select></label>`;
     if(d.usb){const u=usbInfo(p,g); chips+=u.dist<=0?`<span class="chip ok">USB at ${u.side} edge${u.dist<0?' (overhangs)':''}</span>`:`<span class="chip warn">USB ${u.dist} hole${u.dist>1?'s':''} in from ${u.side} edge</span>`;}
     const conn=g.pins.filter(q=>netOf(pk(p.id,q.i))).length;
     chips+=`<span class="chip">${conn} of ${g.pins.length} pins wired</span>`;
@@ -1404,7 +1456,7 @@ function renderInspector(cf){
       return `<button class="prow" type="button" data-pick="${q.id}"><b>${q.ref}</b><span>${d.name}</span>${iss?'<span class="chip bad">'+iss[0]+'</span>':(q.locked?'<span class="chip acc">Locked</span>':'<span class="chip ok">OK</span>')}</button>`;}).join('');
     const netRows=state.nets.map(n=>{const iss=netIssues(n);
       return `<button class="prow net" type="button" data-net="${n.id}"><b>${netBadge(n)}<span>${esc(netName(n))}</span></b><span class="chip">${n.pins.length} pins</span>${iss.length?`<span class="chip ${iss[0].sev}">${iss[0].sev==='bad'?'Problem':'Check'}</span>`:'<span class="chip ok">OK</span>'}</button>`;}).join('');
-    el.innerHTML=`<div><h2>${cols} × ${rows}</h2><p class="sub">holes · 2.54 mm pitch · about ${mm(cols)} × ${mm(rows)} mm · double-sided</p></div>
+    el.innerHTML=`<div><h2>${cols} × ${rows}</h2><p class="sub">holes · 2.54 mm pitch · double-sided</p><p class="sub">Board ${boardMM().w.toFixed(1)} × ${boardMM().h.toFixed(1)} mm, including a ${marginMM()} mm blank margin past the hole pads on every side</p></div>
       <div class="chips">${state.sample?'<span class="chip warn">Sample circuit</span>':''}<span class="chip">${state.parts.length} part${state.parts.length===1?'':'s'}</span><span class="chip">${state.nets.length} net${state.nets.length===1?'':'s'}</span></div>
       ${issueHtml}
       <div><h3 style="margin-bottom:6px">Nets</h3><div class="plist">${netRows||'<p class="note">No connections yet. Switch to Wire, tap a pin, then tap the pin it connects to.</p>'}</div></div>
@@ -1434,6 +1486,8 @@ function renderPalette(){
 }
 function renderAll(){
   $('#boardCols').value=state.board.cols; $('#boardRows').value=state.board.rows;
+  if(document.activeElement!==$('#boardMargin')) $('#boardMargin').value=marginMM();
+  $('#showDims').checked=ui.dims!==false;
   if(document.activeElement!==$('#projName')) $('#projName').value=state.name;
   $('#sideTop').setAttribute('aria-pressed',String(!state.flip));
   $('#sideBottom').setAttribute('aria-pressed',String(state.flip));
@@ -1514,19 +1568,21 @@ function setSpan(p,delta){
   if(p.locked){toast(`${p.ref} is locked. Unlock it to change it.`);return;}
   tryChange(p,()=>{p.span=s;},`No room to stretch ${p.ref} to ${s} holes here.`);
 }
-function setMount(p){
-  /* The module itself never moves: switching only moves the solder points.
-     Through-hole: its edge holes drop straight into the perfboard holes underneath.
-     Castellated: it lies flat and each edge pad bridges to the perfboard hole just outside it,
-     so the footprint gains one hole on each side while the board outline stays where it is. */
-  const snap=snapshot(), to=p.mount==='smd'?'':'smd';
-  const g0=geom(p), cx=p.x+g0.W/2, cy=p.y+g0.H/2;
+const MOUNTS={'':'through-hole pins','smdon':'castellated on holes','smd':'castellated, bridged'};
+function setMount(p,to){
+  /* The module itself never moves; only its solder points change.
+     Through-hole pins: header pins drop into the perfboard holes.
+     Castellated on holes: the module lies flat with each edge pad right over a hole (same 2.54 mm grid) and solder flows through.
+     Castellated, bridged: the module lies flat and each pad bridges to the hole just outside it (footprint one hole wider each side). */
+  if(to===undefined){const order=['','smdon','smd'];to=order[(order.indexOf(p.mount||'')+1)%3];}
+  if((p.mount||'')===to)return;
+  const snap=snapshot(), g0=geom(p), cx=p.x+g0.W/2, cy=p.y+g0.H/2;
   if(to)p.mount=to; else delete p.mount;
   const g1=geom(p); p.x=Math.round(cx-g1.W/2); p.y=Math.round(cy-g1.H/2);
   pushUndo(snap); save(); renderAll();
   const iss=conflicts()[p.id];
-  if(iss) toast(`${p.ref} switched to ${to?'castellated':'through-hole'}, but its solder points now ${iss[0]==='Off the board'?'fall off the board':iss[0].toLowerCase()}. Move it or the other part to clear the red outline.`);
-  else toast(to?`${p.ref} now lies flat: each castellated pad bridges to the hole just outside the module.`:`${p.ref} is back on through-hole pins.`);
+  if(iss) toast(`${p.ref}: ${MOUNTS[to]}, but its solder points now ${iss[0]==='Off the board'?'fall off the board':iss[0].toLowerCase()}. Move it or the other part to clear the red outline.`);
+  else toast({'':`${p.ref} is on through-hole pins.`,smdon:`${p.ref} lies flat with each castellated pad right over a hole; solder pad and hole together.`,smd:`${p.ref} lies flat; each castellated pad bridges to the hole just outside the module.`}[to]);
 }
 function deletePart(p){
   const snap=snapshot(); state.parts=state.parts.filter(q=>q.id!==p.id); pruneNets(p.id); state.sel=null;
@@ -1647,6 +1703,7 @@ document.addEventListener('click',e=>{
   else if(act==='span+')setSpan(p,1);
 });
 document.addEventListener('change',e=>{
+  if(e.target.id==='mountSel'){const p=find(state.sel);if(p)setMount(p,e.target.value);return;}
   if(e.target.id==='netName'){
     const n=findNet(state.selNet); if(!n)return;
     const v=e.target.value.trim().slice(0,24); if(v===n.name)return;
@@ -1672,12 +1729,18 @@ document.addEventListener('click',e=>{
 function boardInput(){
   const c=clamp(Math.round(+$('#boardCols').value||24),6,80), r=clamp(Math.round(+$('#boardRows').value||18),6,80);
   if(c===state.board.cols&&r===state.board.rows)return;
-  const snap=snapshot(); state.board={cols:c,rows:r}; pushUndo(snap); save(); renderAll();
+  const snap=snapshot(); state.board={cols:c,rows:r,margin:marginMM()}; pushUndo(snap); save(); renderAll();
   const nbad=Object.keys(conflicts()).length;
   if(nbad) toast(`${nbad} part${nbad>1?'s':''} now off the board. Move or remove them.`);
   else if(routesOk()&&!state.routes.empty&&state.routeSigNB===routeSigNB()) toast('Board resized and your wires kept. Tap Re-route to use the new space.');
 }
 $('#boardCols').addEventListener('change',boardInput);
+$('#boardMargin').addEventListener('change',e=>{
+  const v=Math.round(clamp(+e.target.value||0,0,40)*100)/100; if(v===marginMM()){e.target.value=v;return;}
+  const snap=snapshot(); state.board={...state.board,margin:v}; pushUndo(snap); save(); renderAll();
+  toast(`Margin ${v} mm on every side: the board is now ${boardMM().w.toFixed(1)} × ${boardMM().h.toFixed(1)} mm.`);
+});
+$('#showDims').addEventListener('change',e=>{ui.dims=e.target.checked;saveUi();renderAll();});
 $('#boardRows').addEventListener('change',boardInput);
 $('#sideTop').addEventListener('click',()=>{state.flip=false;renderAll();});
 $('#sideBottom').addEventListener('click',()=>{state.flip=true;renderAll();});
@@ -1717,6 +1780,7 @@ $('#fbPlan').addEventListener('click',()=>showTab('plan',true));
 $('#tabDetails').addEventListener('click',()=>showTab('details'));
 $('#tabPlan').addEventListener('click',()=>showTab('plan'));
 $('#rpClose').addEventListener('click',()=>{ui.right=false;saveUi();applyPanels();});
+$('#palClose').addEventListener('click',()=>{ui.pal=false;saveUi();applyPanels();});
 document.addEventListener('keydown',e=>{
   if(e.key!=='Escape')return;
   if(document.getElementById('newBack')){closeDlg('newBack');e.stopImmediatePropagation();return;}
@@ -1858,7 +1922,7 @@ const saveProject=()=>saveFile(`perfboard-${slug(state.name)}.json`,JSON.stringi
 $('#saveBtn').addEventListener('click',saveProject);
 function startNew(){
   const snap=snapshot();
-  state.board={cols:24,rows:18}; state.parts=[]; state.nets=[]; state.seq=1; state.netSeq=1; state.name='';
+  state.board={cols:24,rows:18,margin:DEF_MARGIN_MM}; state.parts=[]; state.nets=[]; state.seq=1; state.netSeq=1; state.name='';
   state.sel=null; state.selNet=null; state.wireSrc=null; state.mode='place'; state.sample=false;
   pushUndo(snap); save(); renderAll();
   toast('New project started. Add your microcontroller from the parts list first.');
@@ -2085,7 +2149,7 @@ function applyImport(){
   let cols=clamp(Math.round(+imp.cols||24),6,80), rows=clamp(Math.round(+imp.rows||18),6,80);
   const mcu=a.parts.find(p=>LIB[p.type].kind==='mcu'), others=a.parts.filter(p=>p!==mcu);
   for(let attempt=0;attempt<8;attempt++){
-    state.board={cols,rows}; state.parts=[]; let ok=true;
+    state.board={cols,rows,margin:marginMM()}; state.parts=[]; let ok=true;
     if(mcu){const s=suggest(mcu); if(!s){ok=false;} else {Object.assign(mcu,s);state.parts.push(mcu);}}
     if(ok){
       let x0=0; if(mcu){const g=geom(mcu);x0=g.x+g.W+1;}
