@@ -41,15 +41,24 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--body);}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--body);overflow:hidden}
 button,input,textarea{font:inherit;color:inherit}
-.app{margin:0;padding-inline:16px;padding-block:12px 28px;display:grid;gap:12px;
-  grid-template-columns:220px minmax(0,1fr) 300px;grid-template-areas:"top top top" "pal board insp";align-items:start}
-@media (max-width:1100px){.app{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "board" "pal" "insp"}}
-.pal,.insp{position:sticky;top:calc(12px + env(safe-area-inset-top,0px));max-height:calc(100vh - 24px);overflow:auto}
-@media (max-width:1100px){.pal,.insp{position:static;max-height:none}}
+/* one screen, no page scroll: each panel scrolls on its own */
+.app{height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:grid;row-gap:10px;column-gap:0;padding:10px 12px;
+  grid-template-rows:auto minmax(0,1fr);grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"top top top" "pal board right"}
+.pal{width:236px;margin-right:10px}
+.rightp{width:340px;margin-left:10px}
+.app.pal-off .pal,.app.right-off .rightp{display:none}
+.pal,.rightp{min-height:0;overflow:auto;overscroll-behavior:contain}
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "board"}
+  .pal,.rightp{position:fixed;z-index:12;top:calc(8px + env(safe-area-inset-top,0px));bottom:calc(8px + env(safe-area-inset-bottom,0px));margin:0;box-shadow:0 14px 40px var(--shadow);width:min(340px,calc(100vw - 32px))}
+  .pal{left:8px} .rightp{right:8px}
+}
 
 /* top bar */
+@media (max-width:900px){.brand span{display:none}.brand h1{font-size:22px}.top{gap:8px 12px}}
 .top{grid-area:top;display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px}
 .brand{display:flex;align-items:baseline;gap:10px;margin-right:auto;min-width:0}
 .brand h1{font:700 26px/1 var(--display);letter-spacing:.01em;margin:0;text-wrap:balance}
@@ -77,11 +86,16 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.prow:focus-visi
 .eyebrow{font:600 11px var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0}
 
 /* parts drawer */
-.pal{grid-area:pal;padding:14px;display:grid;gap:14px}
+.pal{grid-area:pal;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.pgroup{border-top:1px solid var(--line);padding-top:8px}
+.pgroup>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 0 6px}
+.pgroup>summary::-webkit-details-marker{display:none}
+.pgroup>summary::after{content:'';width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin-right:4px;transition:transform .15s}
+.pgroup:not([open])>summary::after{transform:rotate(-45deg)}
+.pgroup>summary .cnt{font:500 11px var(--mono);color:var(--muted);margin-left:auto}
 .pal-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .pal-head h2{font:600 18px var(--display);margin:0}
 .pal-head small{color:var(--muted);font-size:12px}
-.pgroup{display:grid;gap:6px}
 .pitems{display:grid;gap:6px}
 @media (max-width:1040px){.pitems{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}}
 .pitem{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--panel-2);border-radius:9px;padding:7px 9px;cursor:pointer}
@@ -94,7 +108,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.prow:focus-visi
 .mini-pin{fill:var(--pin)}
 
 /* board */
-.boardp{grid-area:board;padding:12px;display:grid;gap:10px}
+.boardp{grid-area:board;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:0}
 .board-bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 14px}
 .bar-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .status{font:500 12px var(--mono);color:var(--muted);min-height:18px;min-width:0;overflow-wrap:anywhere;flex:1 1 220px}
@@ -103,9 +117,24 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.prow:focus-visi
 .meter .sep{opacity:.5}
 .zoom{display:flex;gap:6px;align-items:center}
 .zoom output{font:500 12px var(--mono);color:var(--muted);width:42px;text-align:center}
-.board-stage{position:relative}
-.board-wrap{overflow:auto;border-radius:10px;background:var(--panel-2);border:1px solid var(--line);max-height:calc(100vh - 235px);min-height:240px}
-#board{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none}
+.board-stage{position:relative;flex:1 1 auto;min-height:200px}
+.board-wrap{position:absolute;inset:0;overflow:auto;display:flex;padding:6px 40px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line);overscroll-behavior:contain}
+.board-wrap.panning{cursor:grabbing}
+.board-wrap.panning *{cursor:grabbing!important}
+#board{display:block;flex:none;margin:auto;user-select:none;-webkit-user-select:none}
+.wiremode .fr4{fill:#2E2929;stroke:#1c1919}
+/* floating panel switches on the board edges */
+.float{position:absolute;z-index:3;display:flex;flex-direction:column;gap:6px;top:10px}
+.float.l{left:5px}.float.r{right:5px}
+.fbtn{writing-mode:vertical-rl;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:10px 5px;font:600 12px var(--body);letter-spacing:.02em;cursor:pointer;box-shadow:0 3px 10px var(--shadow);display:flex;align-items:center;gap:6px}
+.float.l .fbtn{transform:rotate(180deg)}
+.fbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.fbtn svg{width:14px;height:14px;flex:none}
+.rightp{grid-area:right;padding:0;display:flex;flex-direction:column}
+.rp-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.rp-head .seg button{padding:5px 10px}
+.rp-body{padding:14px}
+.rp-body .plan{padding:0}
 .fr4{fill:var(--fr4);stroke:var(--fr4-edge);stroke-width:2}
 .ring{fill:var(--ring)}
 .drill{fill:var(--drill)}
@@ -124,7 +153,17 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.prow:focus-visi
 .b-px{fill:var(--px);stroke:var(--px-edge);stroke-width:1.2}
 .b-pcb{fill:var(--pcb);stroke:var(--pcb);stroke-width:1}
 .pin{fill:var(--pin);stroke:var(--pin-edge);stroke-width:1}
-.castle{stroke:var(--pin);stroke-width:5;stroke-linecap:round}
+.castle{stroke:#c9ced2;stroke-width:4.5;stroke-linecap:round}
+.castle-pad{fill:var(--pin);stroke:var(--pin-edge);stroke-width:1}
+.b-mcu-btn{fill:#e4e6e8;stroke:#8a8f95;stroke-width:.8}
+.b-mcu-chip{fill:#111214;stroke:#2d3036;stroke-width:1}
+.b-mcu-dot{fill:#5b6068}
+.b-mcu-ant{fill:#e8e1cf;stroke:#a89f88;stroke-width:.8}
+.b-mcu-led{fill:#ff5a4f}
+.b-mcu-can{fill:#c8ccd1;stroke:#8d939a;stroke-width:1}
+.b-mcu-mod{fill:#15171a}
+.b-mcu-zig{fill:none;stroke:#c9a23a;stroke-width:2}
+.t-onmetal{fill:#2a2d31!important;opacity:1}
 .b-buzz{fill:#1d1f22;stroke:#000;stroke-width:1.2}
 .b-buzz-hole{fill:#3b3f45}
 .b-btn{fill:#2b2d31;stroke:#111;stroke-width:1}
@@ -142,7 +181,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.prow:focus-visi
 .lock path{fill:none;stroke:var(--pin);stroke-width:1.4}
 .o-sel{fill:none;stroke:var(--accent);stroke-width:2.2;stroke-dasharray:5 3}
 .o-bad{fill:var(--bad);fill-opacity:.28;stroke:var(--bad);stroke-width:2.2}
-.solder .b-buzz,.solder .b-buzz-hole,.solder .b-btn,.solder .b-btn-cap,.solder .b-sw,.solder .b-sw-knob,.solder .b-mod,.solder .b-fhdr,.solder .b-mcu,.solder .b-usb,.solder .b-jst,.solder .b-res,.solder .b-res-band,.solder .b-led,.solder .b-flat,.solder .b-px,.solder .b-pcb,.solder .b-lead{opacity:.2}
+.solder .b-buzz,.solder .b-buzz-hole,.solder .b-btn,.solder .b-btn-cap,.solder .b-sw,.solder .b-sw-knob,.solder .b-mod,.solder .b-fhdr,.solder .b-mcu-btn,.solder .b-mcu-chip,.solder .b-mcu-dot,.solder .b-mcu-ant,.solder .b-mcu-led,.solder .b-mcu-can,.solder .b-mcu-mod,.solder .b-mcu-zig,.solder .b-mcu,.solder .b-usb,.solder .b-jst,.solder .b-res,.solder .b-res-band,.solder .b-led,.solder .b-flat,.solder .b-px,.solder .b-pcb,.solder .b-lead{opacity:.2}
 .solder .t-ref,.solder .t-name{opacity:.45}
 .solder .lbl{fill:var(--silk);paint-order:stroke;stroke:var(--fr4);stroke-width:2.5px}
 #ratsLayer,#overlayLayer{pointer-events:none}
@@ -168,7 +207,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.prow:focus-visi
 .selbar.wire .hint{color:var(--ink)}
 
 /* inspector */
-.insp{grid-area:insp;padding:14px;display:grid;gap:14px}
+.insp{display:grid;gap:14px}
 .insp h2{font:700 30px/1 var(--display);margin:0;display:flex;align-items:center;gap:10px;overflow-wrap:anywhere}
 .insp h3{font:600 16px var(--display);margin:0}
 .sub{color:var(--muted);font-size:13px;margin:2px 0 0}
@@ -315,7 +354,6 @@ ol.steps li.grp-title{counter-increment:none}
         </div>
         <button id="organizeBtn" class="btn" type="button" title="Let the planner place unlocked parts to shorten wires and avoid jumpers">Organize parts</button>
         <button id="rerouteBtn" class="btn" type="button">Re-route</button>
-        <button id="planBtn" class="btn primary" type="button">Solder plan</button>
       </div>
       <div class="bar-tools">
         <label class="check" for="showRoutes"><input id="showRoutes" type="checkbox" checked> Routes</label>
@@ -324,6 +362,7 @@ ol.steps li.grp-title{counter-increment:none}
           <button class="btn" id="zoomOut" type="button" aria-label="Zoom out">−</button>
           <output id="zoomVal">100%</output>
           <button class="btn" id="zoomIn" type="button" aria-label="Zoom in">+</button>
+          <button class="btn" id="zoomFit" type="button" title="Fit the board to the window (F)">Fit</button>
         </div>
       </div>
     </div>
@@ -336,16 +375,29 @@ ol.steps li.grp-title{counter-increment:none}
         <svg id="board" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Perfboard layout"><g id="boardLayer"></g><g id="partsLayer"></g><g id="routeLayer"></g><g id="ratsLayer"></g><g id="overlayLayer"></g></svg>
       </div>
       <div class="flipnote" id="flipnote" aria-live="polite">Solder side · mirrored · columns run right to left</div>
+      <div class="float l"><button class="fbtn" type="button" id="fbParts" aria-pressed="true" title="Show or hide the parts list"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M1 3h12M1 7h12M1 11h12" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>Parts</button></div>
+      <div class="float r">
+        <button class="fbtn" type="button" id="fbDetails" aria-pressed="true" title="Board and part details"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M4 5h6M4 8h4" stroke="currentColor" stroke-width="1.6"/></svg>Details</button>
+        <button class="fbtn" type="button" id="fbPlan" aria-pressed="false" title="Step-by-step solder plan"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 3.5l1.5 1.5L6 2.5M2 9.5l1.5 1.5L6 8.5M8 4h4.5M8 10h4.5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>Solder plan</button>
+      </div>
     </div>
     <div class="selbar" id="selbar"></div>
   </main>
 
-  <aside class="panel insp" id="insp" aria-label="Inspector"></aside>
+  <aside class="panel rightp" id="rightPanel" aria-label="Details and solder plan">
+    <div class="rp-head">
+      <div class="seg" role="group" aria-label="Right panel view">
+        <button id="tabDetails" type="button" aria-pressed="true">Details</button>
+        <button id="tabPlan" type="button" aria-pressed="false">Solder plan</button>
+      </div>
+      <button class="btn sm" type="button" id="rpClose" aria-label="Hide this panel">Hide</button>
+    </div>
+    <div class="rp-body">
+      <div class="insp" id="insp"></div>
+      <div id="plan" class="plan" hidden></div>
+    </div>
+  </aside>
 </div>
-<aside class="drawer" id="planDrawer" aria-label="Solder plan" hidden>
-  <div class="drawer-head"><h2>Solder plan</h2><button class="btn" type="button" id="planClose">Close</button></div>
-  <div id="plan" class="plan"></div>
-</aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -650,7 +702,7 @@ function getDef(p){
 
 /* ---------- state ---------- */
 const state={board:{cols:24,rows:18},parts:[],nets:[],seq:1,netSeq:1,sel:null,selNet:null,wireSrc:null,name:'',mode:'place',showRats:true,showRoutes:true,maxJump:8,routes:null,routeSig:'',
-  flip:false,zoom:window.innerWidth<700?1.8:1,sample:false};
+  flip:false,zoom:1,sample:false};
 let undoStack=[];
 
 function seedSample(){
@@ -1035,6 +1087,22 @@ function planText(){
 }
 
 /* ---------- rendering ---------- */
+/* 100% = the whole board fits the window; zoom is relative to that */
+function applyZoom(){
+  const wrap=$('#boardWrap'); if(!wrap)return;
+  const vb=(svg.getAttribute('viewBox')||'0 0 1 1').split(' ').map(Number), vw=vb[2]||1, vh=vb[3]||1;
+  const cw=Math.max(50,wrap.clientWidth-84), ch=Math.max(50,wrap.clientHeight-16);
+  const base=Math.min(cw/vw,ch/vh)||1, z=state.zoom;
+  svg.style.width=(vw*base*z)+'px'; svg.style.height=(vh*base*z)+'px';
+  const zv=$('#zoomVal'); if(zv) zv.textContent=Math.round(z*100)+'%';
+}
+function setZoom(z,anchor){
+  const wrap=$('#boardWrap'), old=state.zoom; z=clamp(+z.toFixed(2),.5,5); if(z===old)return;
+  const ax=anchor?anchor.x:wrap.clientWidth/2, ay=anchor?anchor.y:wrap.clientHeight/2;
+  const fx=(wrap.scrollLeft+ax)/Math.max(1,wrap.scrollWidth), fy=(wrap.scrollTop+ay)/Math.max(1,wrap.scrollHeight);
+  state.zoom=z; applyZoom();
+  wrap.scrollLeft=fx*wrap.scrollWidth-ax; wrap.scrollTop=fy*wrap.scrollHeight-ay;
+}
 function renderBoard(){
   const{cols,rows}=state.board;
   svg.setAttribute('viewBox',`0 0 ${cols*PITCH+MARGIN*2} ${rows*PITCH+MARGIN*2}`);
@@ -1045,9 +1113,8 @@ function renderBoard(){
     const x=hx(c),y=hy(r); s+=`<circle class="ring" cx="${x}" cy="${y}" r="6.2"/><circle class="drill" cx="${x}" cy="${y}" r="2.5"/>`;
   }
   boardLayer.innerHTML=s;
-  svg.style.width=(state.zoom*100)+'%';
+  applyZoom();
   svg.classList.toggle('wiremode',state.mode==='wire');
-  $('#zoomVal').textContent=Math.round(state.zoom*100)+'%';
 }
 function localRect(p,g,x0,y0,x1,y1){
   const a=dispPt(p,g,x0,y0), b=dispPt(p,g,x1,y1);
@@ -1059,15 +1126,41 @@ function partSVG(p,issues){
   let b='';
   if(issues) b+=`<rect class="o-bad" x="${R.x-2}" y="${R.y-2}" width="${R.w+4}" height="${R.h+4}" rx="6"/>`;
   if(k==='mcu'){
-    const B=g.d.smd?localRect(p,g,.5,-.5,g.d.w-1.5,g.d.h-.5):{x:R.x+3,y:R.y+3,w:R.w-6,h:R.h-6};
-    const bx=B.x+B.w/2, by=B.y+B.h/2;
-    b+=`<rect class="b-mcu" x="${B.x}" y="${B.y}" width="${B.w}" height="${B.h}" rx="6"/>`;
-    const ux=g.usb[0]*f, uy=g.usb[1], along=74, deep=30, out=11; let x,y,w,h;
+    /* draw the module at its real size: the outline never changes between through-hole and castellated */
+    const w0=LIB[p.type].w, ox=g.d.smd?1:0, L=(a,b2,c,d)=>localRect(p,g,ox+a,b2,ox+c,d), P=(a,b2)=>dispPt(p,g,ox+a,b2);
+    const B=L(-.5,-.5,w0-.5,g.d.h-.5), bx=B.x+B.w/2, by=B.y+B.h/2;
+    const pcb=p.type==='xiaoc6'?'#1c1d20':p.type==='devkitc'?'#1f2a3a':'var(--mcu)';
+    b+=`<rect class="b-mcu" style="fill:${pcb}" x="${B.x}" y="${B.y}" width="${B.w}" height="${B.h}" rx="${p.type==='devkitc'?4:7}"/>`;
+    const r=(R2,cls,extra)=>`<rect class="${cls}" x="${R2.x}" y="${R2.y}" width="${R2.w}" height="${R2.h}" ${extra||''}/>`;
+    let tA,tB,dark=false;
+    if(p.type==='c3mini'){
+      b+=r(L(1.15,.85,1.85,1.45),'b-mcu-btn','rx="1"')+r(L(4.15,.85,4.85,1.45),'b-mcu-btn','rx="1"');
+      b+=r(L(2,2,4,3.9),'b-mcu-chip','rx="2"'); const[dx,dy]=P(2.3,2.3); b+=`<circle class="b-mcu-dot" cx="${dx}" cy="${dy}" r="1.6"/>`;
+      b+=r(L(1.5,7.25,4.5,8.05),'b-mcu-ant','rx="2"');
+      const[lx,ly]=P(4.3,6.4); b+=`<circle class="b-mcu-led" cx="${lx}" cy="${ly}" r="2.2"/>`;
+      tA=P(3,4.85); tB=P(3,5.85);
+    }else if(p.type==='xiaoc6'){
+      b+=r(L(1.2,1.35,4.8,5.45),'b-mcu-can','rx="3"');
+      b+=r(L(1.6,6.1,4.4,6.85),'b-mcu-ant','rx="2"');
+      tA=P(3,2.9); tB=P(3,3.9); dark=true;
+    }else{
+      b+=r(L(1.2,.55,2.2,1.35),'b-mcu-btn','rx="1"')+r(L(7.8,.55,8.8,1.35),'b-mcu-btn','rx="1"');
+      b+=r(L(3,3.2,7,5.6),'b-mcu-chip','rx="2"');
+      b+=r(L(1.6,11.8,8.4,21.4),'b-mcu-mod','rx="2"')+r(L(2,12.3,8,18.6),'b-mcu-can','rx="2"');
+      const z=[]; for(let i=0;i<=6;i++){const[zx,zy]=P(2.4+i*.85,i%2?19.4:20.8);z.push(zx+','+zy);} b+=`<polyline class="b-mcu-zig" points="${z.join(' ')}"/>`;
+      tA=P(5,14.6); tB=P(5,15.8); dark=true;
+    }
+    const ux=g.usb[0]*f, uy=g.usb[1], along=p.type==='devkitc'?66:58, deep=30, out=11; let x,y,w,h;
     if(ux!==0){w=deep;h=along;y=by-along/2;const ex=ux>0?B.x+B.w:B.x;x=ux>0?ex-deep+out:ex-out;}
     else{w=along;h=deep;x=bx-along/2;const ey=uy>0?B.y+B.h:B.y;y=uy>0?ey-deep+out:ey-out;}
     b+=`<rect class="b-usb" x="${x}" y="${y}" width="${w}" height="${h}" rx="5"/>`;
-    if(g.d.smd) for(const q of g.pins){const x0=hx(q.c),y0=hy(q.r);b+=`<line class="castle" x1="${x0}" y1="${y0}" x2="${x0+q.dir[0]*f*PITCH*.5}" y2="${y0+q.dir[1]*PITCH*.5}"/>`;}
-    b+=`<text class="t-ref" x="${bx}" y="${by-8}">${p.ref}</text><text class="t-name" x="${bx}" y="${by+8}">${g.d.short}${g.d.smd?' · SMD':''}</text>`;
+    if(g.d.smd) for(const q of g.pins){
+      const x0=hx(q.c),y0=hy(q.r), ex=x0+q.dir[0]*f*PITCH*.5, ey=y0+q.dir[1]*PITCH*.5;
+      b+=`<line class="castle" x1="${x0}" y1="${y0}" x2="${ex}" y2="${ey}"/><circle class="castle-pad" cx="${ex}" cy="${ey}" r="5.4"/><circle class="drill" cx="${ex}" cy="${ey}" r="2.1"/>`;
+    }
+    /* labels run horizontally; on a module turned sideways only the reference fits between chip and antenna */
+    b+=`<text class="t-ref${dark?' t-onmetal':''}" x="${tA[0]}" y="${tA[1]}">${p.ref}</text>`;
+    if(!((p.rot||0)%2)) b+=`<text class="t-name${dark?' t-onmetal':''}" x="${tB[0]}" y="${tB[1]}" style="font-size:8.5px">${g.d.short}${g.d.smd?' · SMD':''}</text>`;
   }else if(k==='buzzer'){
     const[lx,ly]=dispPt(p,g,2.5,2);
     b+=`<circle class="b-buzz" cx="${lx}" cy="${ly}" r="${PITCH*2.35}"/><circle class="b-buzz-hole" cx="${lx}" cy="${ly}" r="${PITCH*.35}"/>`;
@@ -1202,11 +1295,11 @@ function renderSelbar(){
     return;
   }
   const p=find(state.sel);
-  if(!p){el.innerHTML=`<span class="hint">Tap a part to move, rotate or lock it. Switch to Wire to connect pins. Keys: R rotate, W wire, arrows nudge, Delete remove.</span>`;return;}
+  if(!p){el.innerHTML=`<span class="hint">Tap a part to move, rotate or lock it. Switch to Wire to connect pins. Keys: W place/wire · S component/solder side · R rotate · F fit · arrows nudge · Delete remove. Right-drag pans, Ctrl + wheel zooms.</span>`;return;}
   const d=getDef(p);
   el.innerHTML=`<div class="who"><b>${p.ref}</b><span class="hint">${d.name}</span></div>
     <button class="btn" type="button" data-act="rotate" ${p.locked?'disabled':''}>Rotate <kbd>R</kbd></button>
-    ${d.castellated||LIB[p.type].castellated?`<button class="btn" type="button" data-act="mount" ${p.locked?'disabled':''} title="Castellated boards can lie flat and solder from their edge pads">${p.mount==='smd'?'Mount: castellated':'Mount: through-hole'}</button>`:''}
+    ${d.castellated||LIB[p.type].castellated?`<button class="btn" type="button" data-act="mount" title="Castellated boards can lie flat and solder from their edge pads">${p.mount==='smd'?'Mount: castellated':'Mount: through-hole'}</button>`:''}
     <button class="btn" type="button" data-act="lock">${p.locked?'Unlock':'Lock'}</button>
     <button class="btn danger" type="button" data-act="delete">Delete</button>`;
 }
@@ -1292,7 +1385,7 @@ function renderPalette(){
   let s='';
   for(const gname of GROUPS){
     const items=Object.entries(LIB).filter(([,d])=>d.group===gname);
-    s+=`<div class="pgroup"><p class="eyebrow">${gname}</p><div class="pitems">`;
+    s+=`<details class="pgroup" data-group="${gname}"${ui.groups[gname]===false?'':' open'}><summary><span class="eyebrow">${gname}</span><span class="cnt">${items.length}</span></summary><div class="pitems">`;
     for(const[type,d0] of items){
       const d=type==='res'?getDef({type:'res',span:4}):d0;
       const sc=Math.min(40/d.w,30/d.h,7), w=d.w*sc, h=d.h*sc, ox=(44-w)/2, oy=(34-h)/2;
@@ -1301,9 +1394,10 @@ function renderPalette(){
       const meta=`${d.pins.length} pins · ${d.w}×${d.h}${type==='res'?' · span 4':''}`;
       s+=`<button class="pitem" type="button" data-add="${type}"><svg viewBox="0 0 44 34" aria-hidden="true">${ic}</svg><span><b>${d.name}${d.def?'<span class="tag">Default</span>':''}</b><i>${meta}</i></span></button>`;
     }
-    s+='</div></div>';
+    s+='</div></details>';
   }
   $('#palette').innerHTML=s;
+  $('#palette').querySelectorAll('details.pgroup').forEach(d=>d.addEventListener('toggle',()=>{ui.groups[d.dataset.group]=d.open;saveUi();}));
 }
 function renderAll(){
   $('#boardCols').value=state.board.cols; $('#boardRows').value=state.board.rows;
@@ -1388,21 +1482,18 @@ function setSpan(p,delta){
   tryChange(p,()=>{p.span=s;},`No room to stretch ${p.ref} to ${s} holes here.`);
 }
 function setMount(p){
-  if(p.locked){toast(`${p.ref} is locked. Unlock it to change how it mounts.`);return;}
-  const snap=snapshot(), before={x:p.x,y:p.y,mount:p.mount}, to=p.mount==='smd'?'':'smd';
-  const g0=geom(p), cx=p.x+g0.W/2, cy=p.y+g0.H/2, usb0=g0.usb?usbInfo(p,g0).dist:null;
+  /* The module itself never moves: switching only moves the solder points.
+     Through-hole: its edge holes drop straight into the perfboard holes underneath.
+     Castellated: it lies flat and each edge pad bridges to the perfboard hole just outside it,
+     so the footprint gains one hole on each side while the board outline stays where it is. */
+  const snap=snapshot(), to=p.mount==='smd'?'':'smd';
+  const g0=geom(p), cx=p.x+g0.W/2, cy=p.y+g0.H/2;
   if(to)p.mount=to; else delete p.mount;
-  const g1=geom(p), {cols,rows}=state.board; let best=null;
-  for(let y=0;y<=rows-g1.H;y++)for(let x=0;x<=cols-g1.W;x++){
-    p.x=x;p.y=y; if(conflicts()[p.id])continue;
-    let d=Math.hypot(x+g1.W/2-cx,y+g1.H/2-cy);
-    if(usb0===0&&usbInfo(p,geom(p)).dist!==0)d+=100;
-    if(!best||d<best.d)best={x,y,d};
-  }
-  if(!best){Object.assign(p,{x:before.x,y:before.y}); if(before.mount)p.mount=before.mount; else delete p.mount; renderAll();
-    toast(`No room for ${p.ref} ${to?'as a castellated part':'on its headers'} on this board. Make the board bigger or move parts.`);return;}
-  p.x=best.x;p.y=best.y; pushUndo(snap); save(); renderAll();
-  toast(to?`${p.ref} now lies flat: each edge pad solders to the hole just outside it, so it takes 2 more holes across.`:`${p.ref} is back on through-hole headers.`);
+  const g1=geom(p); p.x=Math.round(cx-g1.W/2); p.y=Math.round(cy-g1.H/2);
+  pushUndo(snap); save(); renderAll();
+  const iss=conflicts()[p.id];
+  if(iss) toast(`${p.ref} switched to ${to?'castellated':'through-hole'}, but its solder points now ${iss[0]==='Off the board'?'fall off the board':iss[0].toLowerCase()}. Move it or the other part to clear the red outline.`);
+  else toast(to?`${p.ref} now lies flat: each castellated pad bridges to the hole just outside the module.`:`${p.ref} is back on through-hole pins.`);
 }
 function deletePart(p){
   const snap=snapshot(); state.parts=state.parts.filter(q=>q.id!==p.id); pruneNets(p.id); state.sel=null;
@@ -1457,6 +1548,7 @@ function wireTap(cell){
 }
 let drag=null;
 svg.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'&&e.button!==0)return;
   const cell=cellAt(e);
   $('#status').textContent=describeCell(cell.c,cell.r);
   if(state.mode==='wire'){ e.preventDefault(); wireTap(cell); return; }
@@ -1564,12 +1656,38 @@ $('#maxJump').addEventListener('change',e=>{
   state.maxJump=clamp(+e.target.value||0,0,16);save();refresh();
   const R=state.routes; if(routesOk()&&!R.empty) toast(`Re-routed: ${R.jumps} jumper${R.jumps===1?'':'s'}, ${R.len} holes of wire${R.failed?`, ${R.failed} pin${R.failed>1?'s':''} unrouted`:''}.`);
 });
-$('#planBtn').addEventListener('click',()=>{const d=$('#planDrawer');d.hidden=!d.hidden;if(!d.hidden){renderPlan();$('#planClose').focus();}});
-$('#planClose').addEventListener('click',()=>{$('#planDrawer').hidden=true;$('#planBtn').focus();});
+/* ---------- panels ---------- */
+const UI_KEY='perfboard-ui', narrow=()=>window.innerWidth<=900;
+const ui={pal:true,right:true,tab:'details',groups:{}};
+try{Object.assign(ui,JSON.parse(localStorage.getItem(UI_KEY)||'{}'));}catch(_){}
+if(narrow()){ui.pal=false;ui.right=false;}
+function saveUi(){try{localStorage.setItem(UI_KEY,JSON.stringify(ui));}catch(_){}}
+function applyPanels(){
+  const app=document.querySelector('.app');
+  app.classList.toggle('pal-off',!ui.pal); app.classList.toggle('right-off',!ui.right);
+  $('#fbParts').setAttribute('aria-pressed',String(ui.pal));
+  $('#fbDetails').setAttribute('aria-pressed',String(ui.right&&ui.tab==='details'));
+  $('#fbPlan').setAttribute('aria-pressed',String(ui.right&&ui.tab==='plan'));
+  $('#tabDetails').setAttribute('aria-pressed',String(ui.tab==='details'));
+  $('#tabPlan').setAttribute('aria-pressed',String(ui.tab==='plan'));
+  $('#insp').hidden=ui.tab!=='details'; $('#plan').hidden=ui.tab!=='plan';
+  requestAnimationFrame(applyZoom);
+}
+function showTab(t,toggle){
+  if(toggle&&ui.right&&ui.tab===t) ui.right=false;
+  else { ui.right=true; ui.tab=t; if(narrow())ui.pal=false; }
+  saveUi(); applyPanels(); if(t==='plan'&&ui.right)renderPlan();
+}
+$('#fbParts').addEventListener('click',()=>{ui.pal=!ui.pal; if(ui.pal&&narrow())ui.right=false; saveUi(); applyPanels();});
+$('#fbDetails').addEventListener('click',()=>showTab('details',true));
+$('#fbPlan').addEventListener('click',()=>showTab('plan',true));
+$('#tabDetails').addEventListener('click',()=>showTab('details'));
+$('#tabPlan').addEventListener('click',()=>showTab('plan'));
+$('#rpClose').addEventListener('click',()=>{ui.right=false;saveUi();applyPanels();});
 document.addEventListener('keydown',e=>{
   if(e.key!=='Escape')return;
   if(document.getElementById('newBack')){closeDlg('newBack');e.stopImmediatePropagation();return;}
-  if(!$('#planDrawer').hidden&&!imp){$('#planDrawer').hidden=true;e.stopImmediatePropagation();}
+  if(narrow()&&(ui.pal||ui.right)&&!imp){ui.pal=false;ui.right=false;applyPanels();e.stopImmediatePropagation();}
 },true);
 $('#rerouteBtn').addEventListener('click',()=>{state.routeSig='';refresh();const R=state.routes;
   if(routesOk()&&!R.empty) toast(`Re-routed: ${R.jumps} jumper${R.jumps===1?'':'s'}, ${R.len} holes of wire${R.failed?`, ${R.failed} pin${R.failed>1?'s':''} unrouted`:''}.`); else if(R&&R.paused) toast('Fix the parts marked in red first; routing is paused.');});
@@ -1983,12 +2101,33 @@ $('#plan').addEventListener('click',e=>{
   try{navigator.clipboard.writeText(txt).then(()=>toast('Solder plan copied.'),fallback);}catch(_){fallback();}
 });
 $('#undoBtn').addEventListener('click',undo);
-$('#zoomIn').addEventListener('click',()=>{state.zoom=clamp(+(state.zoom+.25).toFixed(2),.75,3.5);renderBoard();});
-$('#zoomOut').addEventListener('click',()=>{state.zoom=clamp(+(state.zoom-.25).toFixed(2),.75,3.5);renderBoard();});
+$('#zoomIn').addEventListener('click',()=>setZoom(state.zoom*1.25));
+$('#zoomOut').addEventListener('click',()=>setZoom(state.zoom/1.25));
+$('#zoomFit').addEventListener('click',()=>{state.zoom=1;applyZoom();});
+/* pan: drag with the right (or middle) mouse button; Ctrl + wheel zooms around the pointer */
+(function(){
+  const wrap=$('#boardWrap'); let pan=null;
+  wrap.addEventListener('contextmenu',e=>e.preventDefault());
+  wrap.addEventListener('pointerdown',e=>{
+    if(e.pointerType!=='mouse'||(e.button!==2&&e.button!==1))return;
+    e.preventDefault(); e.stopPropagation();
+    pan={x:e.clientX,y:e.clientY,l:wrap.scrollLeft,t:wrap.scrollTop,id:e.pointerId};
+    try{wrap.setPointerCapture(e.pointerId);}catch(_){}
+    wrap.classList.add('panning');
+  },true);
+  wrap.addEventListener('pointermove',e=>{ if(!pan)return; wrap.scrollLeft=pan.l-(e.clientX-pan.x); wrap.scrollTop=pan.t-(e.clientY-pan.y); });
+  const end=()=>{ if(!pan)return; pan=null; wrap.classList.remove('panning'); };
+  wrap.addEventListener('pointerup',end); wrap.addEventListener('pointercancel',end);
+  wrap.addEventListener('wheel',e=>{ if(!e.ctrlKey&&!e.metaKey)return; e.preventDefault();
+    const r=wrap.getBoundingClientRect(); setZoom(state.zoom*(e.deltaY<0?1.12:1/1.12),{x:e.clientX-r.left,y:e.clientY-r.top}); },{passive:false});
+  if(window.ResizeObserver) new ResizeObserver(()=>applyZoom()).observe(wrap); else window.addEventListener('resize',applyZoom);
+})();
 document.addEventListener('keydown',e=>{
   const tag=(e.target.tagName||'').toLowerCase(); if(imp||document.getElementById('newBack')||tag==='input'||tag==='textarea'||tag==='select')return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo();return;}
-  if(e.key==='w'||e.key==='W'){setMode(state.mode==='wire'?'place':'wire');return;}
+  if(e.key==='w'||e.key==='W'){setMode(state.mode==='wire'?'place':'wire');toast(state.mode==='wire'?'Wire mode (W to go back to Place)':'Place mode (W for Wire)');return;}
+  if(e.key==='s'||e.key==='S'){state.flip=!state.flip;renderAll();toast(state.flip?'Solder side (S for component side)':'Component side (S for solder side)');return;}
+  if(e.key==='f'||e.key==='F'){state.zoom=1;applyZoom();return;}
   if(state.mode==='wire'){
     if(e.key==='Escape'){state.wireSrc=null;overlayLayer.innerHTML='';refresh();}
     else if((e.key==='Delete'||e.key==='Backspace')&&state.wireSrc){e.preventDefault();const pi=pinInfo(state.wireSrc);disconnect(state.wireSrc);state.selNet=null;refresh();if(pi)toast(`Disconnected ${pinLabel(pi)}.`);}
@@ -2008,7 +2147,7 @@ document.addEventListener('keydown',e=>{
 
 /* ---------- boot ---------- */
 if(!load()) seedSample();
-renderPalette(); renderAll(); updateUndo();
+renderPalette(); applyPanels(); renderAll(); updateUndo();
 })();
 </script>
 

@@ -13,14 +13,14 @@ It is a single static `index.html`: no build step, no server, no dependencies. O
   - Passives and LEDs: resistor (adjustable lead spacing), 5 mm LED, WS2812 pixel LED (5 mm and 3-pin module)
   - Sound and switches: active and passive 12 mm buzzers, 6 × 6 mm push button, 3-pin slide switch (SPDT)
   - Modules: DRV8833 motor driver, VEML6030 light sensor, VL53L0X / VL53L1X ToF sensor, INMP441 I2S microphone
-- **Castellated (SMD) mounting** — the C3 Super Mini and XIAO C6 can lie flat and solder from their edge pads; the footprint grows by one hole on each side.
+- **Castellated (SMD) mounting** — the C3 Super Mini and XIAO C6 can lie flat and solder from their edge pads. The module is drawn at its real size and stays put; only the solder points move one hole outward on each side. This works on locked parts too.
 - **Placement** — drag and drop on the hole grid, rotate, lock, overlap and off-board checks, and auto-suggested spots near the microcontroller. The microcontroller lands on the board edge with USB facing out.
 - **Component organizer** — places every unlocked part for short wires and as few jumpers as possible. Locked parts stay put, and the microcontroller keeps its USB at an edge.
 - **Click-to-wire** — in Wire mode, tap a pin and then the pin it connects to. Nets merge automatically, power nets are named (GND is always black, 5V and 3V3 always red), and each pin shows its GPIO label.
 - **Ratsnest** — live Manhattan minimum-spanning tree per net, with a total length you can use to compare placements.
 - **Connectivity checks** — flags power shorts (e.g. 5V on GND), both leads of a resistor or LED on one net, and GPIOs tied together.
 - **Autorouter** — routes every net and reroutes when parts or connections change. Resizing the board keeps existing wires; **Re-route** uses the new space.
-- **Solder plan** — numbered build order: jumpers, then parts lowest-first, then solder-side wire runs (power first) with waypoints like `Wire C6 → C9 → P9`. It opens in a side panel so the board stays in view. Steps can be ticked off, copied as text or saved as `.txt`.
+- **Solder plan** — numbered build order: jumpers, then parts lowest-first, then solder-side wire runs (power first) with waypoints like `Wire C6 → C9 → P9`. It lives in the right panel next to the board details: switch with the floating **Details** / **Solder plan** tabs on the board edge, or hide the panel. Steps can be ticked off, copied as text or saved as `.txt`.
 - **Component side / solder side views** — the solder-side view is mirrored to match the board in your hand.
 - **Project files** — **New** (offers to save first), **Open…** and **Save file** for `.json` projects, plus an automatic browser save between visits.
 - **Wokwi import** — open a Wokwi `diagram.json` and it places the parts and routes the board (see below).
@@ -55,7 +55,9 @@ An example is in [`examples/wokwi-esp32-devkitc-diagram.json`](examples/wokwi-es
 - **Online:** enable GitHub Pages for this repo (Settings → Pages → deploy from the `master` branch, root folder) and open the site.
 - **Locally:** open `index.html` in a browser.
 
-Keyboard shortcuts: `W` toggles Wire mode, `R` rotates, arrow keys nudge, `Delete` removes, `Ctrl+Z` undoes, `Esc` cancels.
+The app fills one screen with no page scroll: the parts list and the right panel scroll on their own, and both can be collapsed (the **Parts** tab on the board's left edge, the **Details** / **Solder plan** tabs on the right). Part categories collapse too. At 100% the whole board fits the window; zoom in with `+` or Ctrl + mouse wheel and pan by dragging with the right mouse button.
+
+Keyboard shortcuts: `W` switches Place / Wire (the board turns dark in Wire mode), `S` switches component / solder side, `F` fits the board, `R` rotates, arrow keys nudge, `Delete` removes, `Ctrl+Z` undoes, `Esc` cancels.
 
 ## Check before soldering
 
