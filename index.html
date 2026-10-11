@@ -656,7 +656,7 @@ const Router=(function(){
 const Stencil=(function(){
   const P=2.54;
   function build(inp){
-    const o=Object.assign({slot:1.0,thick:0.6,bridge:0,bridgeEvery:20,pegs:false,pegD:0.85,pegH:1.6,notch:3,name:'Perfboard'},inp.opts||{});
+    const o=Object.assign({slot:1.0,thick:0.6,bridge:1.0,bridgeEvery:20,pegs:false,pegD:0.85,pegH:1.6,notch:3,name:'Perfboard'},inp.opts||{});
     const {cols,rows,margins:m,padR}=inp;
     const W=(cols-1)*P+2*padR+m.l+m.r, H=(rows-1)*P+2*padR+m.t+m.b;
     const hx=c=>m.l+padR+c*P, hy=r=>m.t+padR+r*P;            // component-side (physical) coordinates
@@ -2356,7 +2356,7 @@ function exportStencil(kind){
   else if(!window.claude) saveFile(`${base}.stl`,st.stl,'stencil');
   else saveFile(`${base}.zip`,new Blob([zipOne(`${base}.stl`,st.stl)]),'stencil'); /* .stl isn't a permitted download type here, so it travels zipped */
   const i=st.info;
-  setTimeout(()=>toast(`Stencil ${i.W.toFixed(1)} × ${i.H.toFixed(1)} × ${i.thick} mm with 1 mm slots. Print it flat as it comes, flip it onto the solder side of the bare board and tape it down.`),1600);
+  setTimeout(()=>toast(`Stencil ${i.W.toFixed(1)} × ${i.H.toFixed(1)} × ${i.thick} mm, 1 mm slots, ${i.bridges} bridge${i.bridges===1?'':'s'} (lift the marker over them). Print it flat as it comes, flip it onto the solder side of the bare board and tape it down.`),1600);
 }
 $('#plan').addEventListener('click',e=>{
   if(e.target.id==='stencilStl'){exportStencil('stl');return;}
