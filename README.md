@@ -10,9 +10,9 @@ It is a single static `index.html`: no build step, no server, no dependencies. O
 - **Parts library**
   - Microcontrollers: ESP32-C3 Super Mini (default), Seeed XIAO ESP32-C6, ESP32 DevKitC (38-pin)
   - Connectors and headers: JST-XH 2/3/4-pin, female berg strips 1×3, 4, 5, 6, 8, 10 and 12
-  - Passives and LEDs: resistor and diode (adjustable lead spacing), 5 mm LED, WS2812 pixel LED (5 mm and 3-pin module), WS2812B 5050 SMD LED drawn at true size with its off-grid pads bridged to the nearest holes
+  - Passives and LEDs: resistor and diode (adjustable lead spacing), 3, 5, 8 and 10 mm LEDs in red, green or blue, WS2812 pixel LED (5 mm and 3-pin module), WS2812B 5050 SMD LED drawn at true size with its off-grid pads bridged to the nearest holes
   - Sound and switches: active and passive 12 mm buzzers, 6 × 6 mm push button, 3-pin slide switch (SPDT)
-  - Modules: DHT22 (bare 4-pin and 3-pin module), DRV8833 motor driver, VEML6030 light sensor, VL53L0X / VL53L1X ToF sensor, INMP441 I2S microphone
+  - Modules: DHT22 (bare 4-pin and 3-pin module), MAX98357A I2S amplifier, DRV8833 motor driver, VEML6030 light sensor, VL53L0X / VL53L1X ToF sensor, INMP441 I2S microphone
 - **Castellated (SMD) mounting** — the C3 Super Mini and XIAO C6 have three mounts: through-hole pins, castellated pads lying directly on the holes (same 2.54 mm grid, solder pad and hole together), or castellated pads bridged to the hole just outside each pad. The module is drawn at its real size and stays put when you switch; this works on locked parts too.
 - **Placement** — drag and drop on the hole grid, rotate, lock, overlap checks (a part may overhang the board edge as long as every solder point lands on a hole), and auto-suggested spots near the microcontroller. The microcontroller lands on the board edge with USB facing out.
 - **Component organizer** — places every unlocked part for short wires and as few jumpers as possible. Locked parts stay put, and the microcontroller keeps its USB at an edge.
@@ -53,12 +53,12 @@ An example is in [`examples/wokwi-esp32-devkitc-diagram.json`](examples/wokwi-es
 
 ## Usage
 
-- **Online:** enable GitHub Pages for this repo (Settings → Pages → deploy from the `master` branch, root folder) and open the site.
+- **Online:** enable GitHub Pages for this repo (Settings → Pages → deploy from the `master` branch, root folder) and open the site. The **Get started** button in the app walks through a whole build, from board setup to printing the stencil.
 - **Locally:** open `index.html` in a browser.
 
-The app fills one screen with no page scroll: the parts list and the right panel scroll on their own, and both can be collapsed (the **Parts** tab on the board's left edge, the **Details** / **Solder plan** tabs on the right). Part categories collapse too. At 100% the whole board fits the window; zoom in with `+` or Ctrl + mouse wheel and pan by dragging with the right mouse button.
+The app fills one screen with no page scroll: the parts list and the right panel scroll on their own, and both can be collapsed (the **Parts** tab on the board's left edge, the **Details** / **Solder plan** tabs on the right). Part categories collapse too. At 100% the whole board fits the window; the mouse wheel zooms around the pointer and dragging with the right mouse button pans. Drag the handles between panels to resize them.
 
-Keyboard shortcuts: `W` switches Place / Wire (the board turns dark in Wire mode), `S` switches component / solder side, `F` fits the board, `R` rotates, arrow keys nudge, `Delete` removes, `Ctrl+Z` undoes, `Esc` cancels.
+Keyboard shortcuts: `Ctrl+Z` / `Ctrl+Y` undo and redo, `W` switches Place / Wire (the board turns dark in Wire mode), `S` switches component / solder side, `F` fits the board, `R` rotates, arrow keys nudge, `Delete` removes, `Esc` cancels.
 
 ## Check before soldering
 
@@ -83,6 +83,10 @@ Keyboard shortcuts: `W` switches Place / Wire (the board turns dark in Wire mode
 ```
 
 `x`/`y` are the top-left hole of the part's footprint. `rot` is in 90° steps clockwise. `margin` holds the blank board edge per side in mm (a single number applies to every side). `mount` is `"smdon"` for castellated pads on the holes or `"smd"` for castellated pads bridged to the holes outside. Net pins are `partId:pinIndex`.
+
+## Versions and releases
+
+Versions follow [CalVer](https://calver.org/) `YYYY.MM.MICRO` (for example `2026.10.0`); the current one shows next to the title and in **About**. Each new version is tagged and published as a [GitHub release](https://github.com/bhattvishal/perf-router/releases) automatically, with notes taken from [CHANGELOG.md](CHANGELOG.md). To ship a change: `python3 tools/bump_version.py "What changed"`, then commit and push.
 
 ## License
 

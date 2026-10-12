@@ -1,0 +1,77 @@
+name: Release
+
+# Every push to master that ships a new CalVer version (APP_VERSION in index.html)
+# gets a git tag and a GitHub release whose notes come from that version's CHANGELOG.md section.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        id: ver
+        run: |
+          v=$(grep -oP "APP_VERSION='\K[0-9]{4}\.[0-9]{1,2}\.[0-9]+" index.html | head -1)
+          if [ -z "$v" ]; then echo "::error::APP_VERSION not found in index.html"; exit 1; fi
+          if ! echo "$v" | grep -qP '^20[0-9]{2}\.(0?[1-9]|1[0-2])\.[0-9]+$'; then echo "::error::$v is not CalVer YYYY.MM.MICRO"; exit 1; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "tag=v$v" >> "$GITHUB_OUTPUT"
+
+      - name: Check the version was bumped
+        id: check
+        run: |
+          tag="${{ steps.ver.outputs.tag }}"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            if ! git diff --quiet "$tag" HEAD -- index.html; then
+              echo "::error::index.html changed but APP_VERSION is still ${{ steps.ver.outputs.version }}. Bump it (python3 tools/bump_version.py) and add a CHANGELOG.md entry."
+              exit 1
+            fi
+            echo "Release $tag already exists and the app is unchanged; nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build release notes from CHANGELOG.md
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          v="${{ steps.ver.outputs.version }}"
+          awk -v v="$v" '
+            $0 ~ "^## \\[" v "\\]" {on=1; next}
+            on && /^## \[/ {exit}
+            on {print}
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then echo "::error::No CHANGELOG.md section for [$v]"; exit 1; fi
+          prev=$(git tag --list 'v*' --sort=-v:refname | head -1)
+          {
+            echo
+            echo "---"
+            echo "**Try it:** download \`index.html\` below and open it in a browser, or use the hosted copy if GitHub Pages is on."
+            if [ -n "$prev" ]; then
+              echo
+              echo "**Commits since $prev:**"
+              git log --no-merges --pretty='- %s (%h)' "$prev"..HEAD
+            fi
+          } >> notes.md
+          cat notes.md
+
+      - name: Create tag and release
+        if: steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.ver.outputs.tag }}"
+          gh release create "$tag" index.html \
+            --target "$GITHUB_SHA" \
+            --title "Perfboard Planner ${{ steps.ver.outputs.version }}" \
+            --notes-file notes.md
