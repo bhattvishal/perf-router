@@ -374,6 +374,12 @@ ol.steps li.grp-title{counter-increment:none}
 .step:has(input:checked){opacity:.7}
 .plan-empty{color:var(--muted);font-size:13px}
 
+.ctx{position:fixed;z-index:30;min-width:220px;max-width:calc(100vw - 16px);background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px var(--shadow);padding:6px;display:grid;gap:2px}
+.ctx-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 8px 8px;border-bottom:1px solid var(--line);margin-bottom:4px;font-size:13px}
+.ctx-h .where{width:100%;font:500 11.5px var(--mono);color:var(--muted)}
+.ctx button{border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;color:var(--ink)}
+.ctx button:hover,.ctx button:focus-visible{background:var(--panel-2);outline:none}
+.ctx button.danger{color:var(--bad)}
 .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:9px;font-size:13px;font-weight:500;max-width:calc(100% - 32px);transition:opacity .18s,transform .18s;pointer-events:none;z-index:10}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
@@ -1657,7 +1663,7 @@ function renderSelbar(){
         ${n?'<button class="btn" type="button" data-act="unpinsrc">Disconnect this pin</button>':''}
         <button class="btn primary" type="button" data-act="stopwire">Done</button>`;
     }else{
-      el.innerHTML=`<span class="hint" title="Tap a pin, then the pin it connects to. Keep tapping to add more pins to the same net. Tap empty board to stop.">Wire mode · tap a pin, then the pin it connects to · keep tapping to chain · tap empty board to stop</span>`;
+      el.innerHTML=`<span class="hint" title="Tap a pin, then the pin it connects to. Keep tapping to add more pins to the same net. Tap empty board to stop.">Wire mode · tap a pin, then the pin it connects to · keep tapping to chain · long-press a connection to delete it</span>`;
     }
     return;
   }
@@ -1937,7 +1943,14 @@ svg.addEventListener('pointerdown',e=>{
   if(e.pointerType==='mouse'&&e.button!==0)return;
   const cell=cellAt(e);
   $('#status').textContent=describeCell(cell.c,cell.r);
-  if(state.mode==='wire'){ e.preventDefault(); wireTap(cell); return; }
+  if(state.mode==='wire'){
+    /* a quick tap wires; a long press (0.5 s) on a connected hole opens a menu to delete that connection */
+    e.preventDefault(); closeCtx();
+    const lp={cell,x:e.clientX,y:e.clientY,fired:false,id:e.pointerId};
+    lp.t=setTimeout(()=>{lp.fired=true; if(!openCtx(cell,lp.x,lp.y)) toast('No connection on this hole. Long-press a wired pin or a wire run to delete it.');},500);
+    longPress=lp; try{svg.setPointerCapture(e.pointerId);}catch(_){}
+    return;
+  }
   const gEl=e.target.closest('.part');
   if(!gEl){ if(state.sel||state.selNet){state.sel=null;state.selNet=null;refresh();} return; }
   const p=find(gEl.dataset.id); if(!p)return;
@@ -1947,6 +1960,7 @@ svg.addEventListener('pointerdown',e=>{
   e.preventDefault();
 });
 svg.addEventListener('pointermove',e=>{
+  if(longPress&&Math.hypot(e.clientX-longPress.x,e.clientY-longPress.y)>10){clearTimeout(longPress.t);}
   const cell=cellAt(e);
   if(state.mode==='wire'){
     if(e.pointerType==='mouse') $('#status').textContent=describeCell(cell.c,cell.r);
@@ -1974,8 +1988,47 @@ function endDrag(){
   if(iss){p.x=d.ox;p.y=d.oy;renderAll();toast(`${iss[0]==='Off the board'?'That spot is off the board':'That spot '+iss[0].toLowerCase()}. ${p.ref} went back.`);return;}
   pushUndo(d.snap); save(); renderAll();
 }
-svg.addEventListener('pointerup',endDrag);
-svg.addEventListener('pointercancel',endDrag);
+svg.addEventListener('pointerup',e=>{
+  if(longPress){const lp=longPress; longPress=null; clearTimeout(lp.t); if(!lp.fired) wireTap(lp.cell); return;}
+  endDrag();
+});
+svg.addEventListener('pointercancel',()=>{ if(longPress){clearTimeout(longPress.t);longPress=null;} endDrag(); });
+/* ---------- wire-mode context menu ---------- */
+let longPress=null;
+function netAtCell(cell){
+  const pi=pinAtCell(cell);
+  if(pi){const n=netOf(pi.key); if(n) return {net:n,pin:pi};}
+  const R=state.routes; if(!routesOk()||R.empty) return null;
+  const W=rW(), c=cell.r*W+cell.c;
+  for(let k=0;k<R.res.length;k++){ const rr=R.res[k]; if(!rr||!state.nets[k])continue;
+    for(const path of rr.paths) if(path.some(st=>st.c===c)) return {net:state.nets[k],pin:null}; }
+  return null;
+}
+function closeCtx(){const m=document.getElementById('ctxMenu'); if(m)m.remove();}
+function openCtx(cell,x,y){
+  const hit=netAtCell(cell); if(!hit) return false;
+  closeCtx(); if(navigator.vibrate) try{navigator.vibrate(15);}catch(_){}
+  const n=hit.net, name=netName(n), m=document.createElement('div');
+  m.id='ctxMenu'; m.className='ctx'; m.setAttribute('role','menu');
+  m.innerHTML=`<div class="ctx-h">${netBadge(n)} <b>${esc(name)}</b><span class="where">Hole ${hole(cell.c,cell.r)} · ${n.pins.length} pins</span></div>`+
+    (hit.pin?`<button type="button" role="menuitem" data-ctx="pin">Disconnect ${esc(pinLabel(hit.pin))}</button>`:'')+
+    `<button type="button" role="menuitem" class="danger" data-ctx="net">Delete connection ${esc(name)}</button>`+
+    `<button type="button" role="menuitem" data-ctx="close">Cancel</button>`;
+  document.body.appendChild(m);
+  const r=m.getBoundingClientRect(); m.style.left=clamp(x+8,8,window.innerWidth-r.width-8)+'px'; m.style.top=clamp(y+8,8,window.innerHeight-r.height-8)+'px';
+  state.selNet=n.id; renderParts();
+  m.addEventListener('click',e=>{
+    const a=e.target.closest('[data-ctx]'); if(!a)return; const act=a.dataset.ctx; closeCtx();
+    if(act==='pin'&&hit.pin){ if(state.wireSrc===hit.pin.key)state.wireSrc=null; disconnect(hit.pin.key); refresh(); toast(`Disconnected ${pinLabel(hit.pin)} from ${name}. Undo brings it back.`); }
+    else if(act==='net'){ state.wireSrc=null; deleteNet(n.id); }
+    else refresh();
+  });
+  (m.querySelector('[data-ctx="pin"]')||m.querySelector('[data-ctx="net"]')).focus();
+  return true;
+}
+document.addEventListener('pointerdown',e=>{ if(!e.target.closest('#ctxMenu')) closeCtx(); },true);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('ctxMenu')){ e.stopImmediatePropagation(); closeCtx(); } },true);
+$('#boardWrap').addEventListener('scroll',closeCtx,{passive:true});
 svg.addEventListener('pointerleave',()=>{if(!drag){$('#status').textContent='Hover or tap a hole to see its coordinate.';overlayLayer.innerHTML='';}});
 
 /* ---------- UI wiring ---------- */
@@ -2030,12 +2083,9 @@ $('#modeWire').addEventListener('click',()=>setMode('wire'));
 $('#showRats').addEventListener('change',e=>{state.showRats=e.target.checked;renderParts();});
 $('#showRoutes').addEventListener('change',e=>{state.showRoutes=e.target.checked;renderParts();});
 /* ---------- version (CalVer YYYY.MM.MICRO: year, month, release number within the month) ---------- */
-const APP_VERSION='2026.10.1', APP_DATE='2026-10-12', REPO='https://github.com/bhattvishal/perf-router';
+const APP_VERSION='2026.10.2', APP_DATE='2026-10-12', REPO='https://github.com/bhattvishal/perf-router';
 const RELEASE_NOTES=[
-  "Board settings moved into a Board tab in the right panel, next to Details and Solder plan",
-  "One DHT22 / AM2302 part drawn at true size (33 × 15.5 × 8 mm), mounted upright or lying flat",
-  "Removed the 3-pin DHT22 module and the 5 mm pixel LED",
-  "Removed the Get started guide"];
+  "Wire mode: long-press a wired pin or wire run to disconnect that pin or delete the whole connection"];
 
 /* ---------- dialogs ---------- */
 function modal(o){
