@@ -1248,7 +1248,7 @@ function renderRoutes(){
   let tr='',jw='';
   state.nets.forEach((n,k)=>{
     const rr=R.res[k]; if(!rr)return;
-    const col=netColor(n), edge=netEdge(n), op=focus&&focus!==n.id?.15:1;
+    const col=netColor(n), edge=netEdge(n), op=focus&&focus!==n.id&&state.mode!=='wire'?.15:1; /* while wiring, every net stays fully visible */
     for(const path of rr.paths){
       const{runs,jumps}=pathPieces(path);
       for(const run of runs){
@@ -1607,7 +1607,7 @@ function renderRats(cf){
   const focus=state.selNet||(srcNet&&srcNet.id)||null;
   const routed=state.showRoutes&&routesOk()&&!state.routes.empty&&!(drag&&drag.moved), W=rW();
   state.nets.forEach((n,k)=>{
-    const st=netStats(n), col=netColor(n), hl=focus===n.id, dim=focus&&!hl;
+    const st=netStats(n), col=netColor(n), hl=focus===n.id, dim=focus&&!hl&&state.mode!=='wire';
     links+=st.es.length; len+=st.len; used+=st.pts.length;
     const op=dim?.18:1;
     const failed=routed?new Set((state.routes.res[k]||{failed:[]}).failed):null;
@@ -2083,9 +2083,9 @@ $('#modeWire').addEventListener('click',()=>setMode('wire'));
 $('#showRats').addEventListener('change',e=>{state.showRats=e.target.checked;renderParts();});
 $('#showRoutes').addEventListener('change',e=>{state.showRoutes=e.target.checked;renderParts();});
 /* ---------- version (CalVer YYYY.MM.MICRO: year, month, release number within the month) ---------- */
-const APP_VERSION='2026.10.2', APP_DATE='2026-10-12', REPO='https://github.com/bhattvishal/perf-router';
+const APP_VERSION='2026.10.3', APP_DATE='2026-10-12', REPO='https://github.com/bhattvishal/perf-router';
 const RELEASE_NOTES=[
-  "Wire mode: long-press a wired pin or wire run to disconnect that pin or delete the whole connection"];
+  "Fixed: in Wire mode, earlier connections no longer fade out while you make the next one"];
 
 /* ---------- dialogs ---------- */
 function modal(o){

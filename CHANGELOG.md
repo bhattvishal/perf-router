@@ -4,6 +4,11 @@ Perfboard Planner uses [CalVer](https://calver.org/) versions: `YYYY.MM.MICRO`, 
 
 To ship a change, run `python3 tools/bump_version.py "What changed" "Something else"`, commit and push. The Release workflow tags it and publishes the notes; it fails if `index.html` changed without a new version.
 
+## [2026.10.3] - 2026-10-12
+
+### Fixed
+- In Wire mode, earlier connections no longer fade out while you make the next one
+
 ## [2026.10.2] - 2026-10-12
 
 ### Added
