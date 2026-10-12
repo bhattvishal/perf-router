@@ -6,13 +6,13 @@ It is a single static `index.html`: no build step, no server, no dependencies. O
 
 ## Features
 
-- **Any board size** — default 24 × 18 holes at 2.54 mm pitch, plus a blank **margin** of board material set separately for the top, right, bottom and left, measured from the outer edge of the hole pads. Each side defaults to the bare gap between two neighbouring hole pads (1.23 mm). With **Dimensions** on, the board's overall width and height are drawn along its edges and dotted guides show the margin on each side.
+- **Any board size** — default 24 × 18 holes at 2.54 mm pitch, plus a blank **margin** of board material set separately for the top, right, bottom and left, measured from the outer edge of the hole pads. Each side defaults to the bare gap between two neighbouring hole pads (1.23 mm). Size, margins and the jumper limit live in the **Board** tab of the right panel. With **Dimensions** on, the board's overall width and height are drawn along its edges and dotted guides show the margin on each side.
 - **Parts library**
   - Microcontrollers: ESP32-C3 Super Mini (default), Seeed XIAO ESP32-C6, ESP32 DevKitC (38-pin)
   - Connectors and headers: JST-XH 2/3/4-pin, female berg strips 1×3, 4, 5, 6, 8, 10 and 12
-  - Passives and LEDs: resistor and diode (adjustable lead spacing), 3, 5, 8 and 10 mm LEDs in red, green or blue, WS2812 pixel LED (5 mm and 3-pin module), WS2812B 5050 SMD LED drawn at true size with its off-grid pads bridged to the nearest holes
+  - Passives and LEDs: resistor and diode (adjustable lead spacing), 3, 5, 8 and 10 mm LEDs in red, green or blue, WS2812 pixel LED module, WS2812B 5050 SMD LED drawn at true size with its off-grid pads bridged to the nearest holes
   - Sound and switches: active and passive 12 mm buzzers, 6 × 6 mm push button, 3-pin slide switch (SPDT)
-  - Modules: DHT22 (bare 4-pin and 3-pin module), MAX98357A I2S amplifier, DRV8833 motor driver, VEML6030 light sensor, VL53L0X / VL53L1X ToF sensor, INMP441 I2S microphone
+  - Modules: DHT22 / AM2302 (bare 4-pin, upright or lying flat), MAX98357A I2S amplifier, DRV8833 motor driver, VEML6030 light sensor, VL53L0X / VL53L1X ToF sensor, INMP441 I2S microphone
 - **Castellated (SMD) mounting** — the C3 Super Mini and XIAO C6 have three mounts: through-hole pins, castellated pads lying directly on the holes (same 2.54 mm grid, solder pad and hole together), or castellated pads bridged to the hole just outside each pad. The module is drawn at its real size and stays put when you switch; this works on locked parts too.
 - **Placement** — drag and drop on the hole grid, rotate, lock, overlap checks (a part may overhang the board edge as long as every solder point lands on a hole), and auto-suggested spots near the microcontroller. The microcontroller lands on the board edge with USB facing out.
 - **Component organizer** — places every unlocked part for short wires and as few jumpers as possible. Locked parts stay put, and the microcontroller keeps its USB at an edge.
@@ -53,7 +53,7 @@ An example is in [`examples/wokwi-esp32-devkitc-diagram.json`](examples/wokwi-es
 
 ## Usage
 
-- **Online:** enable GitHub Pages for this repo (Settings → Pages → deploy from the `master` branch, root folder) and open the site. The **Get started** button in the app walks through a whole build, from board setup to printing the stencil.
+- **Online:** enable GitHub Pages for this repo (Settings → Pages → deploy from the `master` branch, root folder) and open the site.
 - **Locally:** open `index.html` in a browser.
 
 The app fills one screen with no page scroll: the parts list and the right panel scroll on their own, and both can be collapsed (the **Parts** tab on the board's left edge, the **Details** / **Solder plan** tabs on the right). Part categories collapse too. At 100% the whole board fits the window; the mouse wheel zooms around the pointer and dragging with the right mouse button pans. Drag the handles between panels to resize them.

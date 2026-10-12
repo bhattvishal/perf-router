@@ -4,6 +4,16 @@ Perfboard Planner uses [CalVer](https://calver.org/) versions: `YYYY.MM.MICRO`, 
 
 To ship a change, run `python3 tools/bump_version.py "What changed" "Something else"`, commit and push. The Release workflow tags it and publishes the notes; it fails if `index.html` changed without a new version.
 
+## [2026.10.1] - 2026-10-12
+
+### Changed
+- Board settings moved into a Board tab in the right panel, next to Details and Solder plan
+- One DHT22 / AM2302 part drawn at true size (33 × 15.5 × 8 mm), mounted upright or lying flat
+
+### Removed
+- The 3-pin DHT22 module and the 5 mm pixel LED; the sample circuit and Wokwi NeoPixels now use the pixel LED module
+- The Get started guide
+
 ## [2026.10.0] - 2026-10-12
 
 First versioned release.
